@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FM-1 Radio, sonde</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --fg: #1d1d1b; --muted: #6b6a66; --card: #ffffff; --line: #dedcd6;
+    --accent: #c2410c; --ok: #15803d; --warn: #b45309; --bad: #b91c1c; --mono: ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151514; --fg: #ecebe7; --muted: #9a9892; --card: #1f1f1d; --line: #34332f; --accent: #fb923c; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 16px 16px 120px; }
+  h1 { font-size: 22px; margin: 8px 0 2px; }
+  h2 { font-size: 17px; margin: 0 0 6px; }
+  p { margin: 6px 0; }
+  .muted { color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 14px 0; }
+  .warn { border-left: 4px solid var(--warn); }
+  button { font: inherit; padding: 7px 14px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+  select, input { font: inherit; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; border: 1px solid var(--line); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); } .pill.bad { color: var(--bad); border-color: var(--bad); } .pill.warn { color: var(--warn); border-color: var(--warn); }
+  .result { font-family: var(--mono); font-size: 13px; white-space: pre-wrap; margin-top: 8px; }
+  #log { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; max-height: 320px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+  #dock { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); padding: 10px 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  #glitch { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 600; }
+  #phase { font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>FM-1 Radio, sonde</h1>
+  <p class="muted">Vérifie sur un vrai FM-1 sous JIANT ce que la radio a besoin de faire en direct. Mode simulateur : ajouter <code>?sim=1</code> à l'adresse.</p>
+
+  <div class="card warn">
+    <h2>Avant de commencer</h2>
+    <p>La sonde écrit uniquement dans la <b>RAM</b> du FM-1 (pas de sauvegarde de projet, pas de mise à jour, pas de backup). Elle photographie ce qu'elle touche et le remet en place à la fin de chaque test.</p>
+    <p>Par sécurité : <b>sauvegarde ton projet sur la machine</b> (SAVE) avant de commencer, n'arme aucune piste en enregistrement. À l'arrêt, JIANT fait une sauvegarde automatique au bout de 10 s : si un test est interrompu, clique sur <b>Tout restaurer</b> avant d'arrêter la lecture.</p>
+    <p>Pendant les tests, clique sur <b>Glitch entendu</b> (en bas) dès que tu entends un clic, un trou ou un décalage : le moment est noté dans le journal.</p>
+  </div>
+
+  <div class="card">
+    <h2>0. Connexion</h2>
+    <div class="row"><button id="connect" class="primary">Connecter le FM-1</button><span id="connState" class="muted">non connecté</span></div>
+    <div id="info" class="result"></div>
+    <div id="tracks"></div>
+    <div class="row">Horloge envoyée par le FM-1 : <span id="clockIn" class="pill">rien reçu</span></div>
+  </div>
+
+  <div class="card">
+    <h2>1. Réécrire les pas pendant la lecture</h2>
+    <p class="muted">Passe la machine en <b>mode LOOP</b> (machine arrêtée : maintiens SAVE et appuie sur D5), lance PLAY, choisis une piste mélodique qui joue des notes. La sonde la transpose d'une octave toutes les 2 s (4 fois), puis réécrit toute la piste d'un coup pour mesurer le débit, puis remet les pas d'origine.</p>
+    <div class="row">Piste : <select class="trackSel" id="t1track"></select><button id="t1run" disabled>Lancer le test 1</button></div>
+    <div id="t1res" class="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Changer de son, fondus et filtre pendant la lecture</h2>
+    <p class="muted">Sur la piste choisie : 3 changements de preset (PRESET), 2 par Program Change (pistes 1 à 4), un fondu de niveau, un balayage du DJ FILTER maître. Une étape toutes les 3 s environ. Puis restauration du son et des réglages.</p>
+    <div class="row">Piste : <select class="trackSel" id="t2track"></select><button id="t2run" disabled>Lancer le test 2</button></div>
+    <div id="t2res" class="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. L'app comme horloge maître</h2>
+    <p class="muted">La sonde passe la machine en CLOCK USB (ce qui arrête la lecture), envoie Start puis l'horloge : 8 s à 120 BPM, rampe vers 96, 8 s à 96, rampe retour, puis te demande de <b>passer sur un autre onglet 20 s</b>. Attention : JIANT s'arrête tout seul si l'horloge s'interrompt plus de 500 ms. À la fin, retour en CLOCK d'origine et BPM d'origine (relance PLAY toi-même).</p>
+    <div class="row">Avance d'envoi :
+      <select id="t3look"><option value="300">300 ms</option><option value="1500" selected>1500 ms</option></select>
+      <button id="t3run" disabled>Lancer le test 3</button></div>
+    <div id="t3res" class="result"></div>
+    <p class="muted">Variante passive : si tu règles MENU › MIDI OUT sur CLOCK (horloge INT), la machine envoie son horloge et la sonde l'affiche en haut (tempo estimé, gigue). Note simplement ce que tu vois.</p>
+  </div>
+
+  <div class="card">
+    <h2>4. Téléphone Android</h2>
+    <p class="muted">Ouvre cette même page dans Chrome Android (servie en HTTPS), FM-1 branché en USB-C, puis fais le test 0. Le résultat attendu : « SysEx autorisé » et la version JIANT lue. Si ça passe, tu peux enchaîner les tests 1 à 3 depuis le téléphone.</p>
+    <div id="t4res" class="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>Journal</h2>
+    <div class="row"><button id="copyMd">Copier en Markdown</button><button id="dlJson">Télécharger le JSON</button><button id="clearLog">Vider</button></div>
+    <div id="log"></div>
+  </div>
+</main>
+
+<div id="dock">
+  <span id="phase" class="muted">en attente</span>
+  <button id="glitch">Glitch entendu</button>
+  <button id="restoreAll" disabled>Tout restaurer</button>
+</div>
+
+<script>
+"use strict";
+/* =========================================================================================================
+ * FM-1 Radio, sonde. Protocole : éditeur SysEx de JIANT (hérité de Felucca), F0 7D 46 4C <cmd> <args> F7.
+ * Référence : JIANT web/EDITOR_PROTOCOL.md et firmware/src/editor.c (GPL-3.0, lus, pas copiés).
+ * Règle de sécurité : tout ce qui part vers le FM-1 passe par send(), qui applique une liste blanche.
+ * ========================================================================================================= */
+
+const QS = new URLSearchParams(location.search);
+const SIM = QS.has("sim");
+const FAST = SIM && QS.has("fast");            // tests automatiques : durées divisées par 10, pas de phase onglet caché
+const wait = ms => sleep(FAST ? ms / 10 : ms);
+const HDR = [0x7D, 0x46, 0x4C];
+const CMD = { INFO: 1, GET: 2, SET: 3, DESC: 5, PRESET: 8, NAMES: 10, PING: 25, TRACK: 27, TRACK_DUMP: 29,
+              TRACK_STEP: 30, TRACK_PARAM: 31, SONG: 33 };
+/* ids fixes du firmware (core.h), vérifiés par DESC à la connexion */
+const P_LEVEL = 0, P_SLEN = 29, P_MUTE = 40;
+const G_BPM = 0, G_CLOCK = 2, G_DJF = 17;
+
+const log = [];          // {t, kind, msg}
+const t0 = performance.now();
+let out = null, inp = null, access = null;
+let dev = null;          // INFO parsé
+let restoring = false;   // autorise les écritures de restauration (TRACK_PARAM sur tous les ids)
+const snapshots = [];    // restaurations en attente (fonctions async), dernière en premier
+let busy = false;
+
+/* ----------------------------------------------------------------- journal */
+function now() { return ((performance.now() - t0) / 1000).toFixed(3); }
+function L(kind, msg) {
+  const e = { t: now(), kind, msg };
+  log.push(e);
+  const el = document.getElementById("log");
+  el.textContent += `[${e.t}] ${kind.padEnd(6)} ${msg}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+function phase(txt) { document.getElementById("phase").textContent = txt; L("phase", txt); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const hex = a => Array.from(a, b => b.toString(16).padStart(2, "0")).join(" ");
+
+/* ----------------------------------------------------------------- liste blanche */
+const SET_GLOBALS_OK = new Set([G_BPM, G_CLOCK, G_DJF]);
+function allowed(bytes) {
+  const b0 = bytes[0];
+  if (b0 === 0xF8 || b0 === 0xFA || b0 === 0xFC) return bytes.length === 1;
+  if ((b0 & 0xF0) === 0xC0) return bytes.length === 2;                 // Program Change
+  if (b0 !== 0xF0) return false;                                       // ni notes, ni CC, rien d'autre
+  if (bytes[bytes.length - 1] !== 0xF7) return false;
+  if (bytes[1] !== HDR[0] || bytes[2] !== HDR[1] || bytes[3] !== HDR[2]) return false;   // F0 22 .. (update, UBOOT) exclu ici
+  const cmd = bytes[4], a = bytes.slice(5, -1);
+  for (const x of a) if (x > 0x7F) return false;
+  switch (cmd) {
+    case CMD.INFO: case CMD.PING: return a.length === 0;
+    case CMD.GET: case CMD.DESC: return a.length === 2;
+    case CMD.SET: return a.length === 4 && a[0] === 1 && SET_GLOBALS_OK.has(a[1]);   // seulement BPM, CLOCK, DJ FILT
+    case CMD.PRESET: return a.length === 2;
+    case CMD.NAMES: case CMD.TRACK_DUMP: return a.length === 1;
+    case CMD.TRACK: return a.length <= 1;
+    case CMD.TRACK_STEP: return a.length === 2 || a.length === 10;
+    case CMD.TRACK_PARAM: return a.length === 2 || (a.length === 4 && (restoring || a[1] === P_LEVEL));
+    case CMD.SONG: return a.length === 1 && a[0] === 0;                  // requête seulement, jamais set/start/stop
+    default: return false;                                               // PROJECT, UP_*, BACKUP_*, MENU_*, MOTION...
+  }
+}
+function send(bytes, ts) {
+  const arr = Uint8Array.from(bytes);
+  if (!allowed(arr)) { L("BLOQUE", hex(arr)); throw new Error("trame refusée par la liste blanche : " + hex(arr)); }
+  if (ts !== undefined) out.send(arr, ts); else out.send(arr);
+}
+
+/* ----------------------------------------------------------------- encodage */
+const v14 = v => { v = Math.max(-8192, Math.min(8191, Math.round(v))) + 8192; return [v & 0x7F, (v >> 7) & 0x7F]; };
+const rv14 = (a, i) => (a[i] | (a[i + 1] << 7)) - 8192;
+function rstr(a, i) { let s = ""; while (i < a.length && a[i] !== 0) s += String.fromCharCode(a[i++]); return [s, i + 1]; }
+
+/* ----------------------------------------------------------------- requêtes */
+let pending = null;          // {cmd, resolve, timer}
+let clockIn = { n: 0, last: 0, gaps: [] };
+function onMessage(ev) {
+  const d = ev.data;
+  if (d[0] === 0xF8) { clockTick(ev.timeStamp || performance.now()); return; }
+  if (d[0] === 0xFA || d[0] === 0xFC) { L("in", d[0] === 0xFA ? "Start reçu du FM-1" : "Stop reçu du FM-1"); return; }
+  if (d[0] !== 0xF0) return;
+  if (d[1] === HDR[0] && d[2] === HDR[1] && d[3] === HDR[2]) {
+    const cmd = d[4], args = Array.from(d.slice(5, -1));
+    if (pending && pending.cmd === cmd) { clearTimeout(pending.timer); const p = pending; pending = null; p.resolve(args); }
+    else L("in", `push ou réponse inattendue cmd ${cmd} : ${hex(d.slice(0, 16))}...`);
+  }
+}
+async function req(cmd, args = [], timeout = 800) {
+  while (pending) await sleep(1);
+  return new Promise((resolve, reject) => {
+    const t = performance.now();
+    pending = { cmd, resolve: r => resolve({ args: r, ms: performance.now() - t }), timer: setTimeout(() => {
+      pending = null; reject(new Error(`pas de réponse à la commande ${cmd}`)); }, timeout) };
+    try { send([0xF0, ...HDR, cmd, ...args, 0xF7]); } catch (e) { clearTimeout(pending.timer); pending = null; reject(e); }
+  });
+}
+const getG = async id => rv14((await req(CMD.GET, [1, id])).args, 2);
+const setG = async (id, v) => rv14((await req(CMD.SET, [1, id, ...v14(v)])).args, 2);
+async function getStep(k, i) { const { args, ms } = await req(CMD.TRACK_STEP, [k, i]); return { st: parseStep(args, 2), ms }; }
+function parseStep(a, o) { return { n: a[o], notes: a.slice(o + 1, o + 5), time: a[o + 5], flags: a[o + 6], vel: a[o + 7] }; }
+async function putStep(k, i, s) {
+  const { args, ms } = await req(CMD.TRACK_STEP, [k, i, s.n, ...s.notes, s.time, s.flags & 3, s.vel]);
+  return { st: parseStep(args, 2), ms };
+}
+const sameStep = (x, y) => x.n === y.n && x.time === y.time && x.vel === y.vel && x.notes.every((v, j) => v === y.notes[j]);
+async function trackParam(k, id, v) {
+  const a = v === undefined ? [k, id] : [k, id, ...v14(v)];
+  return rv14((await req(CMD.TRACK_PARAM, a)).args, 2);
+}
+async function tracks() {
+  const a = (await req(CMD.TRACK)).args, n = a[1], list = [];
+  let o = 2;
+  for (let i = 0; i < n; i++) { list.push({ eng: a[o], preset: a[o + 1], level: rv14(a, o + 2), mute: a[o + 4], armed: a[o + 5] }); o += 6; }
+  return { sel: a[0], list };
+}
+async function trackDump(k) {
+  const a = (await req(CMD.TRACK_DUMP, [k])).args, p = [];
+  for (let i = 0; i < dev.pCount; i++) p.push(rv14(a, 3 + 2 * i));
+  return { eng: a[1], preset: a[2], p };
+}
+async function names(eng) {
+  const a = (await req(CMD.NAMES, [eng])).args; let o = 2; const list = [];
+  for (let i = 0; i < a[1]; i++) { const [s, n] = rstr(a, o); list.push(s); o = n; }
+  return list;
+}
+async function chainBusy() { try { const a = (await req(CMD.SONG, [0])).args; return a[3] === 1; } catch { return false; } }
+
+/* ----------------------------------------------------------------- horloge reçue (variante passive) */
+function clockTick(ts) {
+  if (clockIn.last) { clockIn.gaps.push(ts - clockIn.last); if (clockIn.gaps.length > 96) clockIn.gaps.shift(); }
+  clockIn.last = ts; clockIn.n++;
+  if (clockIn.n % 24 === 0 && clockIn.gaps.length > 24) {
+    const g = clockIn.gaps, mean = g.reduce((s, x) => s + x, 0) / g.length;
+    const sd = Math.sqrt(g.reduce((s, x) => s + (x - mean) ** 2, 0) / g.length);
+    const el = document.getElementById("clockIn");
+    el.textContent = `${(60000 / (mean * 24)).toFixed(1)} BPM, gigue ${sd.toFixed(2)} ms`; el.className = "pill ok";
+    if (clockIn.n % 384 === 0) L("clock", `horloge du FM-1 : ${(60000 / (mean * 24)).toFixed(2)} BPM, écart-type ${sd.toFixed(2)} ms`);
+  }
+}
+
+/* ----------------------------------------------------------------- connexion */
+async function connect() {
+  try {
+    if (!navigator.requestMIDIAccess && !SIM) throw new Error("Web MIDI absent de ce navigateur (Chrome ou Edge requis, pas Safari)");
+    access = SIM ? simAccess() : await navigator.requestMIDIAccess({ sysex: true });
+    L("info", `navigateur : ${navigator.userAgent}`);
+    L("info", `SysEx autorisé : ${access.sysexEnabled}`);
+    const outs = [...access.outputs.values()], ins = [...access.inputs.values()];
+    L("info", "sorties MIDI : " + outs.map(o => o.name).join(" | "));
+    out = outs.find(o => /FM-1/i.test(o.name)); inp = ins.find(i => /FM-1/i.test(i.name));
+    if (!out || !inp) throw new Error("aucun port nommé FM-1 (câble data, pas de hub, ferme les DAW)");
+    inp.onmidimessage = onMessage;
+    const { args: a, ms } = await req(CMD.INFO);
+    let o = 0, s; [s, o] = rstr(a, 0);
+    dev = { version: s, nEng: a[o], pCount: a[o + 1], gCount: a[o + 2], nStep: a[o + 3], pE0: a[o + 4] }; o += 5;
+    dev.engines = []; for (let i = 0; i < dev.nEng; i++) { [s, o] = rstr(a, o); dev.engines.push(s); }
+    dev.nTrk = a[o]; dev.chainRows = a[o + 1];
+    // blocs tagués : certains ont plus d'octets que leur longueur annoncée (4D 01 64 01), on cherche donc la séquence 4A 01 01
+    const tags = a.slice(o + 2); dev.jiant = false;
+    for (let i = 0; i + 2 < tags.length; i++) if (tags[i] === 0x4A && tags[i + 1] === 1 && tags[i + 2] === 1) dev.jiant = true;
+    L("info", `INFO en ${ms.toFixed(1)} ms : ${dev.version}, ${dev.nTrk} pistes, NSTEP ${dev.nStep}, P_COUNT ${dev.pCount}, G_COUNT ${dev.gCount}, tag JIANT ${dev.jiant}`);
+    if (!dev.jiant) L("warn", "pas de tag JIANT dans INFO : la sonde est écrite pour JIANT V10");
+    // vérification des ids par DESC
+    const checks = [[0, P_LEVEL, "LEVEL"], [0, P_SLEN, "LEN"], [0, P_MUTE, "MUTE"], [1, G_BPM, "BPM"], [1, G_CLOCK, "CLOCK"], [1, G_DJF, "DJ FILT"]];
+    let idsOk = true;
+    for (const [sc, id, want] of checks) {
+      const d = (await req(CMD.DESC, [sc, id])).args; const [label] = rstr(d, 9);
+      if (label !== want) { idsOk = false; L("warn", `DESC ${sc}/${id} : attendu ${want}, lu ${label}`); }
+    }
+    L(idsOk ? "info" : "warn", idsOk ? "ids vérifiés par DESC : LEVEL, LEN, MUTE, BPM, CLOCK, DJ FILT" : "ids différents : tests désactivés par prudence");
+    dev.bpm = await getG(G_BPM); dev.clock = await getG(G_CLOCK);
+    L("info", `BPM ${dev.bpm}, CLOCK ${["INT", "USB", "TRS"][dev.clock] || dev.clock}`);
+    await renderTracks();
+    document.getElementById("connState").innerHTML = `<span class="pill ok">connecté</span> ${out.name}`;
+    document.getElementById("info").textContent = `${dev.version}  ·  ${dev.nTrk} pistes  ·  ${dev.bpm} BPM  ·  CLOCK ${["INT", "USB", "TRS"][dev.clock]}  ·  SysEx ${access.sysexEnabled ? "autorisé" : "refusé"}`;
+    document.getElementById("t4res").textContent = `SysEx ${access.sysexEnabled ? "autorisé" : "refusé"} · ${dev.version} lu en ${ms.toFixed(1)} ms · ${/Android/i.test(navigator.userAgent) ? "Android" : "pas Android"}`;
+    if (idsOk) for (const id of ["t1run", "t2run", "t3run"]) document.getElementById(id).disabled = false;
+    document.getElementById("restoreAll").disabled = false;
+  } catch (e) {
+    L("ERREUR", e.message); document.getElementById("connState").innerHTML = `<span class="pill bad">échec</span> ${e.message}`;
+  }
+}
+async function renderTracks() {
+  const t = await tracks(); dev.tracks = t;
+  let h = "<table><tr><th>Piste</th><th>Moteur</th><th>Preset</th><th>Niveau</th><th>Mute</th><th>Rec</th></tr>";
+  t.list.forEach((x, i) => { h += `<tr><td>${i + 1}${i === t.sel ? " (sél.)" : ""}</td><td>${dev.engines[x.eng] || x.eng}</td><td>${x.preset}</td><td>${x.level}</td><td>${x.mute ? "oui" : ""}</td><td>${x.armed ? "<b>ARMÉE</b>" : ""}</td></tr>`; });
+  document.getElementById("tracks").innerHTML = h + "</table>";
+  for (const sel of document.querySelectorAll(".trackSel")) {
+    const keep = sel.value; sel.innerHTML = t.list.map((x, i) => `<option value="${i}">${i + 1} · ${dev.engines[x.eng] || x.eng}</option>`).join("");
+    if (keep) sel.value = keep;
+  }
+}
+async function preflight(needLoop) {
+  const t = await tracks();
+  if (t.list.some(x => x.armed)) throw new Error("une piste est armée en enregistrement : désarme-la (les écritures seraient enregistrées)");
+  const song = await chainBusy();
+  if (song && needLoop) throw new Error("la machine joue en mode SONG (ARRANGE), où JIANT ignore les écritures de pas. Arrête la lecture, maintiens SAVE et appuie sur D5 pour passer en LOOP, puis relance PLAY");
+  if (song) L("info", "mode SONG en lecture : les sons, niveaux et filtres restent modifiables, on continue");
+  return t;
+}
+
+/* ----------------------------------------------------------------- restauration */
+async function runRestores() {
+  restoring = true;
+  try {
+    while (snapshots.length) { const r = snapshots.pop(); try { await r(); } catch (e) { L("ERREUR", "restauration : " + e.message); } }
+  } finally { restoring = false; }
+}
+async function snapTrackSound(k) {
+  const d = await trackDump(k), sel = (await tracks()).sel;
+  L("snap", `piste ${k + 1} : moteur ${dev.engines[d.eng]}, preset ${d.preset}, ${d.p.length} paramètres`);
+  snapshots.push(async () => {
+    await req(CMD.TRACK, [k]);
+    await req(CMD.PRESET, [d.eng, d.preset]);
+    let diff = 0;
+    for (let i = 0; i < d.p.length; i++) { const v = await trackParam(k, i); if (v !== d.p[i]) { await trackParam(k, i, d.p[i]); diff++; } }
+    await req(CMD.TRACK, [sel]);
+    L("restore", `piste ${k + 1} : preset remis, ${diff} paramètres corrigés, sélection remise sur ${sel + 1}`);
+  });
+}
+async function snapSteps(k, len) {
+  const steps = [];
+  for (let i = 0; i < len; i++) steps.push((await getStep(k, i)).st);
+  snapshots.push(async () => {
+    let bad = 0;
+    for (let i = 0; i < len; i++) { const r = await putStep(k, i, steps[i]); if (!sameStep(r.st, steps[i])) bad++; }
+    L("restore", `piste ${k + 1} : ${len} pas remis${bad ? `, ${bad} différents après écriture` : ""}`);
+  });
+  return steps;
+}
+function snapGlobal(id, label) {
+  return getG(id).then(v => { snapshots.push(async () => { await setG(id, v); L("restore", `${label} remis à ${v}`); }); return v; });
+}
+
+/* ----------------------------------------------------------------- test 1 */
+async function test1() {
+  const k = +document.getElementById("t1track").value, res = document.getElementById("t1res");
+  const R = { track: k + 1 };
+  phase("test 1 en cours");
+  await preflight(true);
+  const len = await trackParam(k, P_SLEN);
+  const orig = await snapSteps(k, len);
+  const notes = orig.filter(s => s.time === 0 && s.n > 0).length;
+  L("t1", `piste ${k + 1}, LEN ${len}, ${notes} pas avec des notes`);
+  if (!notes) throw new Error(`aucune note sur la piste ${k + 1} (LEN ${len}) : choisis une piste mélodique qui joue des notes`);
+  const up = orig.map(s => ({ ...s, notes: s.notes.map((n, j) => j < s.n && s.time === 0 ? Math.min(127, n + 12) : n) }));
+  let accepted = 0, refused = 0; const lat = [];
+  for (let rep = 0; rep < 4; rep++) {
+    const target = rep % 2 === 0 ? up : orig;
+    L("t1", `${rep % 2 === 0 ? "octave au-dessus" : "retour"} : écriture de ${len} pas`);
+    const tA = performance.now();
+    for (let i = 0; i < len; i++) {
+      if (sameStep(orig[i], up[i])) continue;
+      const r = await putStep(k, i, target[i]); lat.push(r.ms);
+      if (sameStep(r.st, target[i])) accepted++; else refused++;
+    }
+    L("t1", `passe ${rep + 1} écrite en ${(performance.now() - tA).toFixed(0)} ms`);
+    await wait(2000);
+  }
+  // débit : réécrire toute la piste à l'identique
+  const tB = performance.now();
+  for (let i = 0; i < len; i++) { const r = await putStep(k, i, orig[i]); lat.push(r.ms); }
+  const full = performance.now() - tB;
+  await runRestores();
+  lat.sort((a, b) => a - b);
+  R.accepted = accepted; R.refused = refused; R.fullRewriteMs = Math.round(full); R.steps = len;
+  R.latMedian = lat[lat.length >> 1]?.toFixed(1); R.latMax = lat[lat.length - 1]?.toFixed(1);
+  res.textContent = `écritures acceptées ${accepted}, ignorées ${refused}\nlatence par trame : médiane ${R.latMedian} ms, max ${R.latMax} ms\nréécriture complète de ${len} pas : ${R.fullRewriteMs} ms`;
+  L("RESULT", "test 1 " + JSON.stringify(R));
+  phase("test 1 terminé : as-tu entendu les octaves, et des glitchs ?");
+}
+
+/* ----------------------------------------------------------------- test 2 */
+async function test2() {
+  const k = +document.getElementById("t2track").value, res = document.getElementById("t2res");
+  const R = { track: k + 1, steps: [] };
+  phase("test 2 en cours");
+  const t = await preflight(false);
+  await snapTrackSound(k);
+  await snapGlobal(G_DJF, "DJ FILT");
+  const eng = t.list[k].eng, list = await names(eng);
+  L("t2", `piste ${k + 1}, moteur ${dev.engines[eng]}, ${list.length} presets`);
+  await req(CMD.TRACK, [k]);
+  for (let j = 1; j <= 3; j++) {
+    const p = (t.list[k].preset + j) % Math.max(1, list.length);
+    const { ms } = await req(CMD.PRESET, [eng, p]);
+    L("t2", `PRESET ${p} « ${list[p] || "?"} » (réponse en ${ms.toFixed(1)} ms)`); R.steps.push(`preset ${p} ${ms.toFixed(1)} ms`);
+    await wait(3000);
+  }
+  if (k < 4) {
+    for (const n of [0, 1]) { send([0xC0 | k, n]); L("t2", `Program Change ${n} sur le canal ${k + 1}`); await wait(3000); }
+    const after = (await tracks()).list[k]; L("t2", `après Program Change : moteur ${dev.engines[after.eng]}, preset ${after.preset}`);
+    R.pc = `${dev.engines[after.eng]} / ${after.preset}`;
+  } else L("t2", "Program Change sauté : piste 5 ou 6 (canaux 1 à 4 seulement en ROUTE CH1-4)");
+  const lv = await trackParam(k, P_LEVEL);
+  L("t2", `fondu de niveau ${lv} vers 0 puis retour, 2 s chacun, ~30 messages/s`);
+  const tF = performance.now(); let nF = 0;
+  for (let x = 0; x <= 60; x++) { await trackParam(k, P_LEVEL, Math.round(lv * (1 - x / 60))); nF++; await wait(33); }
+  for (let x = 0; x <= 60; x++) { await trackParam(k, P_LEVEL, Math.round(lv * x / 60)); nF++; await wait(33); }
+  R.fadeMsgPerS = (nF / ((performance.now() - tF) / 1000)).toFixed(1);
+  L("t2", `fondu : ${nF} messages à ${R.fadeMsgPerS} /s`);
+  await wait(1000);
+  L("t2", "balayage DJ FILTER : 0 vers -48 (passe-bas) en 3 s, retour en 3 s");
+  for (let x = 0; x <= 45; x++) { await setG(G_DJF, -Math.round(48 * x / 45)); await wait(66); }
+  for (let x = 45; x >= 0; x--) { await setG(G_DJF, -Math.round(48 * x / 45)); await wait(66); }
+  await wait(1000);
+  await runRestores();
+  await renderTracks();
+  res.textContent = `presets : ${R.steps.join(", ")}\nprogram change : ${R.pc || "sauté"}\nfondu : ${R.fadeMsgPerS} messages/s`;
+  L("RESULT", "test 2 " + JSON.stringify(R));
+  phase("test 2 terminé : clics aux changements de son ? escalier pendant le fondu ?");
+}
+
+/* ----------------------------------------------------------------- test 3 */
+function makeTicker(ms) {   // minuterie dans un Worker : moins bridée qu'un setTimeout quand l'onglet est caché
+  const src = `let h=null;onmessage=e=>{if(e.data==="stop"){clearInterval(h);return;}h=setInterval(()=>postMessage(0),${ms});}`;
+  const w = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+  w.postMessage("go"); return w;
+}
+async function test3() {
+  const res = document.getElementById("t3res"), look = +document.getElementById("t3look").value;
+  const R = { lookaheadMs: look };
+  phase("test 3 en cours");
+  await preflight(false);
+  await snapGlobal(G_BPM, "BPM");
+  const clk0 = await getG(G_CLOCK);
+  snapshots.push(async () => { await setG(G_CLOCK, clk0); L("restore", `CLOCK remis à ${["INT", "USB", "TRS"][clk0]}`); });
+  await setG(G_CLOCK, 1);
+  L("t3", "CLOCK = USB (la lecture s'arrête)");
+  await sleep(300);
+  // plan de tempo : [durée s, bpm début, bpm fin]
+  const f = FAST ? 0.1 : 1, plan = [[8 * f, 120, 120], [8 * f, 120, 96], [8 * f, 96, 96], [8 * f, 96, 120], [9999, 120, 120]];
+  let seg = 0, segT = 0, nextTs = performance.now() + 50, pulses = 0, late = 0, maxGap = 0, lastTick = performance.now();
+  let hiddenPhase = 0, hiddenAt = 0, hiddenMaxGap = 0;
+  const bpmAt = elapsed => {
+    let acc = 0;
+    for (let i = 0; i < plan.length; i++) { const [d, a, b] = plan[i]; if (elapsed < acc + d) return a + (b - a) * ((elapsed - acc) / d); acc += d; }
+    return 120;
+  };
+  const start = nextTs;
+  send([0xFA], start - 1);
+  L("t3", `Start envoyé, avance ${look} ms`);
+  const tick = () => {
+    const n = performance.now(), gap = n - lastTick; lastTick = n;
+    if (gap > maxGap) maxGap = gap;
+    if (document.hidden && gap > hiddenMaxGap) hiddenMaxGap = gap;
+    while (nextTs < n + look) {
+      if (nextTs < n) late++;
+      send([0xF8], Math.max(nextTs, n));
+      pulses++;
+      nextTs += 60000 / (bpmAt((nextTs - start) / 1000) * 24);
+    }
+  };
+  const w = makeTicker(20); w.onmessage = tick;
+  const onVis = () => {
+    if (document.hidden && hiddenPhase === 1) { hiddenPhase = 2; hiddenAt = performance.now(); L("t3", "onglet caché"); }
+    else if (!document.hidden && hiddenPhase === 2) { hiddenPhase = 3; L("t3", `onglet revenu après ${((performance.now() - hiddenAt) / 1000).toFixed(1)} s, pire trou de la minuterie caché : ${hiddenMaxGap.toFixed(0)} ms`); }
+  };
+  document.addEventListener("visibilitychange", onVis);
+  try {
+    for (const [d, a, b] of plan.slice(0, 4)) { L("t3", a === b ? `${a} BPM pendant ${d} s` : `rampe ${a} vers ${b} BPM en ${d} s`); await sleep(d * 1000); }
+    if (!FAST) {
+      hiddenPhase = 1;
+      phase("PASSE SUR UN AUTRE ONGLET pendant 20 s, puis reviens ici");
+      const tH = performance.now();
+      while (hiddenPhase < 3 && performance.now() - tH < 60000) await sleep(200);
+      if (hiddenPhase < 3) L("warn", "phase onglet caché non faite (60 s écoulées)");
+      await sleep(3000);
+    }
+  } finally {
+    w.postMessage("stop"); w.terminate();
+    document.removeEventListener("visibilitychange", onVis);
+    send([0xFC]);
+    L("t3", "Stop envoyé");
+    await sleep(200);
+    await runRestores();
+  }
+  Object.assign(R, { pulses, latePulses: late, maxTimerGapMs: Math.round(maxGap), hiddenMaxGapMs: Math.round(hiddenMaxGap) });
+  res.textContent = `impulsions envoyées ${pulses}, envoyées en retard ${late}\npire trou de la minuterie : ${R.maxTimerGapMs} ms (onglet caché : ${R.hiddenMaxGapMs} ms)\nla machine a-t-elle suivi les rampes ? s'est-elle arrêtée pendant l'onglet caché ?`;
+  L("RESULT", "test 3 " + JSON.stringify(R));
+  phase("test 3 terminé : relance PLAY sur la machine");
+}
+
+/* ----------------------------------------------------------------- boutons */
+async function guard(fn) {
+  if (busy) return; busy = true;
+  document.querySelectorAll("main button").forEach(b => b.disabled = true);
+  try { await fn(); } catch (e) { L("ERREUR", e.message); phase("arrêt sur erreur, restauration"); await runRestores(); }
+  finally { busy = false; document.querySelectorAll("main button").forEach(b => b.disabled = false); if (!dev) ["t1run", "t2run", "t3run"].forEach(i => document.getElementById(i).disabled = true); }
+}
+document.getElementById("connect").onclick = () => guard(connect);
+document.getElementById("t1run").onclick = () => guard(test1);
+document.getElementById("t2run").onclick = () => guard(test2);
+document.getElementById("t3run").onclick = () => guard(test3);
+document.getElementById("glitch").onclick = () => L("GLITCH", "entendu par l'utilisateur");
+document.getElementById("restoreAll").onclick = async () => {
+  try { send([0xFC]); } catch {}
+  await runRestores(); L("restore", "restauration manuelle terminée");
+};
+document.getElementById("clearLog").onclick = () => { log.length = 0; document.getElementById("log").textContent = ""; };
+document.getElementById("copyMd").onclick = async () => {
+  const md = `### Sonde FM-1 Radio, ${new Date().toISOString().slice(0, 16).replace("T", " ")}\n\n${dev ? `Machine : ${dev.version}\n\n` : ""}\`\`\`\n${log.map(e => `[${e.t}] ${e.kind.padEnd(6)} ${e.msg}`).join("\n")}\n\`\`\`\n`;
+  try { await navigator.clipboard.writeText(md); L("info", "journal copié"); } catch { L("warn", "copie refusée par le navigateur"); }
+};
+document.getElementById("dlJson").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ device: dev, log }, null, 2)], { type: "application/json" }));
+  a.download = `fm1-radio-probe-${Date.now()}.json`; a.click();
+};
+window.addEventListener("beforeunload", e => { if (snapshots.length) { e.preventDefault(); e.returnValue = ""; } });
+
+/* =========================================================================================================
+ * Simulateur (?sim=1) : un faux FM-1 qui répond au sous-ensemble du protocole utilisé ici.
+ * Il garde toutes les trames reçues dans window.__simSent pour les tests automatiques.
+ * ========================================================================================================= */
+function simAccess() {
+  const ENG = ["ANALOG", "-", "PHASE", "LOFI", "-", "VOICE", "-", "WHEEL", "-", "-", "DRUM", "NOISE", "FM6", "-", "ANIMAL"];
+  const PC = 123, GC = 32, NT = 6, NS = 64;
+  const LABELS = { "0/0": "LEVEL", "0/29": "LEN", "0/40": "MUTE", "1/0": "BPM", "1/2": "CLOCK", "1/17": "DJ FILT" };
+  const g = new Array(GC).fill(0); g[0] = 120;
+  const trk = Array.from({ length: NT }, (_, i) => ({ eng: [12, 0, 2, 10, 3, 5][i], preset: 0, p: Array.from({ length: PC }, (_, j) => j === 0 ? 104 : j === 29 ? 16 : 0),
+    step: Array.from({ length: NS }, (_, s) => ({ n: s % 2 ? 0 : 1, notes: [48 + (s % 7), 0, 0, 0], time: s % 2 ? 2 : 0, flags: 0, vel: 100 })) }));
+  let sel = 0;
+  window.__simSent = [];
+  const input = { name: "FM-1 (sim)", onmidimessage: null };
+  const reply = (cmd, args) => setTimeout(() => input.onmidimessage && input.onmidimessage({ data: Uint8Array.from([0xF0, ...HDR, cmd, ...args, 0xF7]), timeStamp: performance.now() }), 2 + Math.random() * 3);
+  const str = s => [...s].map(c => c.charCodeAt(0)).concat(0);
+  const stepB = s => [s.n, ...s.notes, s.time, s.flags, s.vel, 0, 0, 0, 100, 1];
+  const output = { name: "FM-1 (sim)", send(data) {
+    const d = Array.from(data); window.__simSent.push(d);
+    if (d[0] !== 0xF0) return;
+    const cmd = d[4], a = d.slice(5, -1);
+    switch (cmd) {
+      case 1: reply(1, [...str("JIANT V10.20 (sim)"), ENG.length, PC, GC, NS, 115, ...ENG.flatMap(str), NT, 16, 0x55, 1, 0, 0x4A, 1, 1]); break;
+      case 2: case 3: { if (cmd === 3) g[a[1]] = rv14(a, 2); reply(cmd, [a[0], a[1], ...v14(a[0] ? g[a[1]] : trk[sel].p[a[1]])]); break; }
+      case 5: reply(5, [a[0], a[1], 0, ...v14(0), ...v14(127), ...v14(0), ...str(LABELS[`${a[0]}/${a[1]}`] || "X"), ...str("")]); break;
+      case 8: trk[sel].eng = a[0]; trk[sel].preset = a[1]; reply(8, [a[0], a[1]]); break;
+      case 10: reply(10, [a[0], 8, ...["INIT", "BASS", "PAD", "KEYS", "LEAD", "BELL", "PLUCK", "FX"].flatMap(str), ...str("EDIT"), ...str("MORE")]); break;
+      case 27: { if (a.length) sel = a[0]; reply(27, [sel, NT, ...trk.flatMap(t => [t.eng, t.preset, ...v14(t.p[0]), t.p[40], 0])]); break; }
+      case 29: reply(29, [a[0], trk[a[0]].eng, trk[a[0]].preset, ...trk[a[0]].p.flatMap(v14)]); break;
+      case 30: { const t = trk[a[0]]; if (a.length >= 10) t.step[a[1]] = { n: a[2], notes: a.slice(3, 7), time: a[7], flags: a[8], vel: a[9] }; reply(30, [a[0], a[1], ...stepB(t.step[a[1]])]); break; }
+      case 31: { const t = trk[a[0]]; if (a.length === 4) t.p[a[1]] = rv14(a, 2); reply(31, [a[0], a[1], ...v14(t.p[a[1]])]); break; }
+      case 33: reply(33, [0, 0, 0, 0, 0, 0]); break;
+    }
+  } };
+  window.__sim = { g, trk };
+  return { sysexEnabled: true, inputs: new Map([["i", input]]), outputs: new Map([["o", output]]) };
+}
+</script>
+</body>
+</html>

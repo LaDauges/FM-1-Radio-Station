@@ -1,0 +1,1414 @@
+<!doctype html>
+<html lang="en" data-theme="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F4F4F2">
+<title>FM-1 Radio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* DA « Index » : deux thèmes, jour (blanc, encre, accent bleu) et signal (fond orange plein, encre noire) */
+  :root, [data-theme="day"] {
+    --bg: #F4F4F2; --ink: #0E0E10; --dim: #55565B; --track: #D9D9D6; --accent: #1F4BFF; --on-accent: #FFFFFF;
+    --prim-bg: #0E0E10; --prim-fg: #F4F4F2; --bad-bg: #C8361A; --bad-fg: #FFFFFF; --soft: rgba(14, 14, 16, .05);
+  }
+  [data-theme="signal"] {
+    --bg: #FF5A1F; --ink: #0E0E10; --dim: #0E0E10; --track: rgba(14, 14, 16, .2); --accent: #0E0E10; --on-accent: #FF5A1F;
+    --prim-bg: #0E0E10; --prim-fg: #FF5A1F; --bad-bg: #0E0E10; --bad-fg: #FF5A1F; --soft: rgba(14, 14, 16, .08);
+  }
+  :root { --sans: "Inter Tight", "Arial Narrow", Arial, sans-serif; --mono: "DM Mono", ui-monospace, Consolas, monospace; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.45 var(--mono); transition: background-color .25s, color .25s; }
+  main { max-width: 1280px; margin: 0 auto; padding: 28px clamp(16px, 4vw, 48px) 48px; display: flex; flex-direction: column; gap: 16px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:disabled { cursor: not-allowed; opacity: .4; }
+  button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  a { color: var(--ink); }
+  .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+  .dim { color: var(--dim); }
+  .big { font-family: var(--sans); font-weight: 900; line-height: .82; letter-spacing: -.055em; text-transform: uppercase; margin: 0; }
+  .hidden { display: none !important; }
+
+  /* en-tête */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px 18px; flex-wrap: wrap; font-size: 13px; letter-spacing: .06em; border-bottom: 1.5px solid var(--ink); padding-bottom: 12px; }
+  .hl, .hr { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; }
+  .brand { font-weight: 500; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+  .pill i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid currentColor; }
+  .pill.on { color: var(--accent); } .pill.on i { background: currentColor; }
+  .pill.wait i { background: currentColor; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .badge { border: 1.5px solid var(--ink); padding: 5px 10px; font-size: 12px; font-weight: 500; }
+  .langs { display: flex; gap: 2px; }
+  .langs button { border: 0; background: transparent; min-width: 36px; min-height: 30px; font-size: 12px; }
+  .langs button.on { background: var(--ink); color: var(--bg); }
+  .langs button:disabled { opacity: .5; }
+  .themebtn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -8px 0; border: 1.5px solid var(--ink); border-radius: 50%; background: transparent; }
+
+  /* titres */
+  .hero { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: end; }
+  .hero .side { display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; min-width: 0; }
+  #titleBox { min-width: 0; overflow: hidden; }
+  #title { font-size: 196px; white-space: nowrap; }
+  #title .old { color: transparent; -webkit-text-stroke: 2px var(--ink); }
+  #title .arrow { padding: 0 .08em; letter-spacing: 0; }
+  #title .new { color: var(--accent); }
+  #seed { font-family: var(--sans); font-weight: 800; font-size: 44px; letter-spacing: -.03em; line-height: 1; }
+  #meta { font-size: 13px; }
+  #status { font-size: 13px; font-weight: 500; color: var(--accent); min-height: 1.4em; }
+  #plugTitle { font-size: clamp(56px, 11vw, 150px); }
+
+  /* bandeau tu joues */
+  .banner { background: var(--ink); color: var(--bg); padding: 14px 16px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .banner b { font-family: var(--sans); font-weight: 900; font-size: 28px; line-height: .9; letter-spacing: -.03em; text-transform: uppercase; }
+  .banner .gauge { flex: 1; min-width: 120px; height: 4px; background: rgba(127, 127, 127, .4); } .banner .gauge i { display: block; height: 4px; background: var(--bg); }
+
+  /* arc */
+  .arc svg { width: 100%; height: 96px; display: block; }
+  #arcAll { fill: var(--track); } #arcDone { fill: var(--accent); } #arcHead { stroke: var(--ink); }
+  .phases { display: flex; font-size: 11px; letter-spacing: .1em; margin-top: 6px; text-transform: uppercase; color: var(--dim); }
+  .phases span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-right: 6px; }
+  .phases span.cur { color: var(--ink); font-weight: 500; }
+
+  /* l'index des styles */
+  .idxhead { display: flex; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; border-top: 1.5px solid var(--ink); padding-top: 12px; }
+  .idxhead .hint { font-size: 11px; letter-spacing: .04em; color: var(--dim); }
+  .idx { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 16px; }
+  .fam { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .fam > span { font-size: 10px; letter-spacing: .12em; color: var(--dim); padding-bottom: 6px; text-transform: uppercase; }
+  .fam button { font: 800 15px/1.1 var(--sans); letter-spacing: -.01em; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding: 5px 6px; margin-left: -6px; min-height: 30px; border: 1.5px solid transparent; background: transparent; }
+  .fam button:hover { background: var(--soft); }
+  .fam button.on { background: var(--accent); color: var(--on-accent); }
+  .fam button.q { border-color: var(--accent); color: var(--accent); }
+
+  /* boutons */
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .btn-prim { font-family: var(--sans); font-weight: 900; font-size: 22px; letter-spacing: -.02em; text-transform: uppercase; background: var(--prim-bg); color: var(--prim-fg); border: 0; padding: 10px 18px; min-height: 48px; }
+  .btn-prim.huge { font-size: clamp(24px, 4vw, 40px); padding: 12px 22px; min-height: 60px; }
+  .btn { background: transparent; border: 1.5px solid var(--ink); padding: 10px 14px; min-height: 48px; font-size: 14px; }
+  .btn.on { background: var(--ink); color: var(--bg); }
+
+  /* branchement */
+  .plug { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
+  .check { display: grid; grid-template-columns: 28px 1fr auto; gap: 14px; align-items: center; padding: 11px 12px; margin: 0 -12px; border-bottom: 1.5px solid var(--ink); }
+  .check .s { display: flex; align-items: center; gap: 6px; font-size: 13px; text-align: right; }
+  .check.bad { background: var(--bad-bg); color: var(--bad-fg); border-bottom-color: transparent; font-weight: 500; }
+  .check.wait { color: var(--dim); }
+  .guide { border: 1.5px solid var(--ink); padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
+  .guide h2 { margin: 0; font-size: 40px; }
+  .guide ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .guide li { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  .guide li .n { width: 30px; height: 30px; background: var(--ink); color: var(--bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .guide li .k { border: 1.5px solid var(--ink); padding: 5px 10px; font-weight: 500; white-space: nowrap; }
+  .guide .note { background: var(--ink); color: var(--bg); padding: 10px 12px; font-size: 13px; }
+  .listen { display: flex; align-items: center; gap: 10px; }
+  .listen i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); }
+  .listen.ok i { background: var(--ink); }
+
+  /* colonnes du bas */
+  .cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; border-top: 1.5px solid var(--ink); padding-top: 14px; }
+  .col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .lanes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+  .lane { position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 8px 10px; min-height: 40px;
+    border: 1.5px solid var(--ink); font-size: 12px; color: var(--dim); }
+  .lane b { font-weight: 500; color: var(--ink); position: relative; }
+  .lane span { position: relative; white-space: nowrap; }
+  .lane i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent); opacity: .25; transition: width .3s; }
+  .lane.on { background: var(--ink); color: var(--bg); } .lane.on b { color: var(--bg); }
+  .lane.write { border-color: var(--accent); color: var(--accent); } .lane.write b { color: var(--accent); }
+  [data-theme="signal"] .lane.write i { opacity: .3; }
+  .sched div, .favs li { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+  .sched .played { color: var(--dim); } .sched .now { font-weight: 500; } .sched .next { color: var(--accent); font-weight: 500; }
+  .favs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .favs li { align-items: center; flex-wrap: wrap; }
+  .favs li span { flex: 1; min-width: 140px; }
+  .favs button { background: transparent; border: 0; text-decoration: underline; padding: 6px 4px; font-size: 12px; min-height: 32px; }
+
+  /* bas de page */
+  details { border-top: 1.5px solid var(--ink); padding-top: 10px; }
+  summary { cursor: pointer; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .settings { display: flex; flex-wrap: wrap; gap: 14px 28px; padding: 12px 0 4px; font-size: 13px; align-items: center; }
+  .settings select { font: inherit; color: inherit; background: transparent; border: 1.5px solid var(--ink); padding: 6px 8px; }
+  .settings select option { color: #0E0E10; background: #FFFFFF; }
+  input[type=range], input[type=checkbox] { accent-color: var(--ink); }
+  #log { font-size: 12px; white-space: pre-wrap; max-height: 260px; overflow: auto; margin-top: 8px; }
+  .foot { font-size: 12px; color: var(--dim); }
+
+  @media (max-width: 900px) {
+    .hero, .plug, .cols { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+    .hero .side { padding-bottom: 0; }
+    .idx { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 16px; }
+    .fam button { min-height: 40px; font-size: 16px; }
+    .phases span:not(.cur) { visibility: hidden; }
+    .arc svg { height: 72px; }
+    .guide h2 { font-size: 32px; }
+    #seed { font-size: 32px; }
+    .acts .btn-prim { flex-basis: 100%; }
+    .lanes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #viewAir .acts { order: 1; } #viewAir .idxhead, #viewAir .idx { order: 2; } #viewAir .cols { order: 3; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="hl">
+      <span class="brand" data-t="brand"></span>
+      <span id="pill" class="pill"><i></i><span id="pillText"></span></span>
+    </div>
+    <div class="hr">
+      <span class="hidden" id="byWrap"><span data-t="by"></span> <span class="badge" id="fwBadge">JIANT FM</span> <span id="fwVer"></span></span>
+      <div class="langs" id="langs"></div>
+      <button class="themebtn" id="themeBtn"></button>
+    </div>
+  </header>
+
+  <!-- ============================================================== branchement -->
+  <section id="viewPlug" style="display: flex; flex-direction: column; gap: 18px">
+    <div class="hero" style="grid-template-columns: minmax(0, 1fr) 320px">
+      <h1 class="big" id="plugTitle" data-t="plugTitle"></h1>
+      <div style="padding-bottom: 8px" data-t="plugIntro"></div>
+    </div>
+    <div class="plug">
+      <div class="col" style="gap: 0">
+        <div id="checks"></div>
+        <div class="row" style="margin-top: 16px">
+          <button class="btn-prim" id="connect"></button>
+          <span id="conn"></span>
+        </div>
+      </div>
+      <div class="guide">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap">
+          <h2 class="big" data-t="howTitle"></h2><span style="font-size: 12px">MENU › CONTROL</span>
+        </div>
+        <div data-t="why"></div>
+        <ol id="steps"></ol>
+        <div class="note" data-t="notAll"></div>
+        <div style="font-size: 13px" data-t="loopTip"></div>
+        <div class="listen" id="listen"><i></i><span></span></div>
+      </div>
+    </div>
+    <div class="idxhead"><span class="label" data-t="startStyle"></span><span class="hint" data-t="hintStart"></span></div>
+    <div class="idx" id="idxPlug"></div>
+    <div class="row" style="margin-top: 6px">
+      <button class="btn-prim huge" id="play"></button>
+      <button class="btn" id="surprisePlug" data-t="surprise"></button>
+      <button class="btn hidden" id="restoreMine" data-t="restoreMine"></button>
+    </div>
+    <div id="plugStatus" style="font-size: 13px"></div>
+  </section>
+
+  <!-- ============================================================== à l'antenne -->
+  <section id="viewAir" class="hidden" style="display: flex; flex-direction: column; gap: 14px">
+    <div class="hero">
+      <div id="titleBox"><div class="big" id="title">-</div></div>
+      <div class="side"><div id="seed"></div><div id="meta"></div><div id="status"></div></div>
+    </div>
+    <div class="banner hidden" id="banner"><b id="bannerTitle"></b><span id="bannerText" style="flex: 3; min-width: 220px"></span><div class="gauge"><i id="bannerGauge"></i></div></div>
+    <div class="arc">
+      <svg id="arc" viewBox="0 0 1000 96" preserveAspectRatio="none" role="img">
+        <path id="arcAll"></path>
+        <path id="arcDone"></path>
+        <line id="arcHead" x1="0" y1="0" x2="0" y2="96" stroke-width="2" vector-effect="non-scaling-stroke"></line>
+      </svg>
+      <div class="phases" id="phases"></div>
+    </div>
+    <div class="lanes" id="lanes" role="list"></div>
+    <div class="idxhead"><span class="label" id="idxTitle"></span><span class="hint" data-t="hintAir"></span></div>
+    <div class="idx" id="idxAir"></div>
+    <div class="row acts" style="margin-top: 6px">
+      <button class="btn-prim" id="next" data-t="next"></button>
+      <button class="btn" id="surprise" data-t="surprise"></button>
+      <button class="btn" id="fav" data-t="keep"></button>
+      <button class="btn" id="hold" data-t="stay"></button>
+      <button class="btn" id="stop" data-t="stop"></button>
+    </div>
+    <div class="cols">
+      <div class="col">
+        <div class="label" data-t="schedule"></div>
+        <div class="sched" id="sched"></div>
+      </div>
+      <div class="col">
+        <div class="label" data-t="keptTitle"></div>
+        <ul class="favs" id="favs"></ul>
+        <div id="favEmpty" style="font-size: 12px" data-t="favEmpty"></div>
+      </div>
+    </div>
+  </section>
+
+  <details>
+    <summary data-t="settings"></summary>
+    <div class="settings">
+      <label><span data-t="energy"></span> <input type="range" id="energy" min="0" max="100" value="40"> <span id="energyV">40</span></label>
+      <label><span data-t="duration"></span> <select id="dur"><option value="3">3 min</option><option value="5" selected>5 min</option><option value="8">8 min</option><option value="15">15 min</option></select></label>
+      <label><span data-t="tracksSet"></span> <select id="six"><option value="1" selected>6 (MENU › TRACKS 6)</option><option value="0">4</option></select></label>
+      <label><span data-t="clock"></span> <select id="clk"><option value="machine" selected data-t="clkMachine"></option><option value="app" data-t="clkApp"></option></select></label>
+      <label><input type="checkbox" id="keepMine" checked> <span data-t="keepMine"></span></label>
+    </div>
+    <div class="foot" id="genInfo"></div>
+  </details>
+  <details>
+    <summary data-t="logTitle"></summary>
+    <div id="log"></div>
+  </details>
+  <div class="foot" data-t="credits"></div>
+</main>
+
+<script>
+"use strict";
+/* =========================================================================================================
+ * FM-1 Radio. Protocole : éditeur SysEx de JIANT, F0 7D 46 4C <cmd> <args> F7 (web/EDITOR_PROTOCOL.md).
+ * Sécurité : tout envoi passe par send() et sa liste blanche (voir allowed()).
+ * Interface : DA Index (thèmes jour et signal), textes dans I18N (anglais par défaut, français ; allemand et néerlandais prévus).
+ * ========================================================================================================= */
+const QS = new URLSearchParams(location.search);
+const SIM = QS.has("sim"), FAST = SIM && QS.has("fast");
+const SPEED = FAST ? 8 : 1;
+const HDR = [0x7D, 0x46, 0x4C];
+const CMD = { INFO: 1, GET: 2, SET: 3, DESC: 5, PRESET: 8, NAMES: 10, WATCH: 22, PING: 25, TRACK: 27, TRACK_DUMP: 29, TRACK_STEP: 30, TRACK_PARAM: 31, SONG: 33 };
+const P_LEVEL = 0, P_SLEN = 29, P_MUTE = 40;
+const G_BPM = 0, G_CLOCK = 2, G_DJF = 17;
+const ROLE = ["DRUM", "BASS", "PAD", "LEAD", "ARP", "TEX"];
+const GLOBAL_LABELS_OK = new Set(["SWING", "TIME", "FEEDBK", "TONE", "MIX", "SIZE", "DAMP", "RATE", "DEPTH", "REL", "CLIP", "TYPE",
+  "PUNCH", "DUCK", "PING", "MOD", "PRE", "FILT", "WIDE", "PITCH", "SPRAY"]);
+/* les styles, rangés par famille (le classement est le nôtre, pas celui de JIANT) ; energy : l'énergie de départ */
+const FAMILIES = [
+  { key: "house", energy: 40, g: ["HOUSE", "DEEP HOUSE", "MICRO HOUSE", "TECH HOUSE", "ACID HOUSE", "DISCO", "ITALO", "UK GARAGE"] },
+  { key: "techno", energy: 50, g: ["TECHNO", "DETROIT", "DUB TECHNO", "HARD TECHNO", "HYPNOTIC", "TRANCE", "ELECTRO", "EBM"] },
+  { key: "synth", energy: 45, g: ["SYNTH POP", "DARKWAVE", "MINIMAL SYNTH", "MAN MACHINE", "MOTORIK"] },
+  { key: "guitar", energy: 50, g: ["POST PUNK", "TRIBAL PUNK", "INDIE", "SHOEGAZE", "POST ROCK"] },
+  { key: "groove", energy: 40, g: ["FUNK", "BOOM BAP", "TRAP", "AFROBEAT", "JAZZ", "BOSSA"] },
+  { key: "bass", energy: 50, g: ["DUBSTEP", "BREAKS", "DRUM & BASS", "DUB", "STEPPERS", "BROKEN", "IDM"] },
+  { key: "calm", energy: 20, g: ["AMBIENT", "NEO CLASSIC", "IMPRESSION", "SOUNDTRACK"] },
+];
+
+/* ----------------------------------------------------------------- langues */
+const I18N = {
+  en: {
+    brand: "FM-1 RADIO", onAir: "ON AIR", offAir: "OFF AIR", waiting: "WAITING FOR PLAY", by: "broadcast by", soon: "Soon",
+    plugTitle: "Plug in your FM-1", plugIntro: "The radio checks everything it can. What's left happens on the machine.",
+    connect: "Connect", reconnect: "Reconnect", start: "Start the radio", restoreMine: "Put my music back",
+    c1: "USB data cable, Chrome or Edge", c2: "Firmware", c3: "Machine clock", c4: "LOOP mode, no armed track", c5: "Your music",
+    sWait: "waiting", sPort: "FM-1 PORT FOUND", sNoClock: "NOTHING RECEIVED", sClock: "RECEIVED", sAppClock: "app clock (USB)", sAtLaunch: "checked at launch", sArmed: "A TRACK IS ARMED",
+    sCopy: "a copy is kept", sNoCopy: "save it (SAVE)",
+    howTitle: "MIDI OUT to CLOCK", why: "The radio follows your machine's clock: you keep the tempo and all your settings.",
+    steps: [["HOLD HOME 1 s", "opens the MENU"], ["ALGORITHM", "to the CONTROL tab"], ["SELECT", "to the MIDI OUT row"], ["any knob", "from KEYS to CLOCK"], ["HOME", "closes and saves"]],
+    notAll: "Not ALL: with ALL, the machine also sends its sequencer's notes, and the radio would think you're playing.",
+    loopTip: "LOOP mode: machine stopped, hold SAVE and press D5.",
+    listening: "Listening for the clock... turns black by itself.", clockOk: "Clock received: you're good.", notConnected: "Connect the FM-1 first.",
+    tracks: "Tracks", schedule: "Schedule", keptTitle: "Kept", startStyle: "Starting style", hintStart: "pick one, or let the radio surprise you",
+    idxTitle: "All {n} styles", hintAir: "on air in color · tap one to queue it, tap again to cancel", surprise: "Surprise me",
+    toNight: "Switch to the signal theme", toDay: "Switch to the day theme",
+    fam: { house: "House & disco", techno: "Techno", synth: "Synth & wave", guitar: "Guitars", groove: "Groove", bass: "Bass & breaks", calm: "Calm", other: "More" },
+    next: "Next tune →", keep: "Keep", stay: "Stay here", resume: "Back to the radio", stop: "Stop",
+    playing: "You're playing", playingText: "The radio keeps this tune and touches nothing. It picks up again 30 s after your last move.",
+    holdingTitle: "Staying here", holdingText: "The radio keeps this tune until you hand it back.",
+    meta: "{fam} · {bpm} BPM · energy {e}",
+    phase: { intro: "intro", build: "build", peak: "peak", breakdown: "breathe", outro: "outro" },
+    arcs: { classique: "classic", vague: "wave", lent: "slow", "double sommet": "double peak" },
+    intros: { nappe: "pad", "rythme filtré": "filtered beat", "basse d'abord": "bass first", "écho": "echo", percussions: "percussion" },
+    lane: { off: "off", on: "on", write: "writing", wait: "queued" },
+    sched: { played: "played", now: "on air", next: "next", surprise: "surprise" },
+    favEmpty: "Nothing yet. A tune is a genre, an energy and a seed: it plays back identically.",
+    play: "Play", copy: "Copy", remove: "Remove", fallbackTag: "fallback",
+    settings: "Settings", energy: "Energy", duration: "Tune length", tracksSet: "Tracks", clock: "Clock",
+    clkMachine: "the machine (you keep control)", clkApp: "the app (CLOCK USB)", keepMine: "keep a copy of my music to put it back at the end",
+    logTitle: "Technical log",
+    genJiant: "Generator: {v} (gen.c compiled), {n} genres.",
+    genFallback: "Fallback generator: gen.c is not compiled yet (gen/build-gen.ps1). Tunes are simpler and don't match the machine's seeds.",
+    credits: "Generator: JIANT by Juan Ignacio Antonucci (GPL-3.0), a fork of Felucca by Hügelton Instruments. FM-1 Radio is free software under GPL-3.0.",
+    st: { reading: "Reading the music on the machine...", ready: "Ready.", usb: "Switching to the USB clock, tracks muted.",
+      pressPlay: "Press PLAY on your machine (STOP then PLAY if it's already playing). The first tune is loading meanwhile.", loading: "Loading the first tune...", stoppedM: "Stopped on the machine: press PLAY to resume.",
+      kept: "{name} kept.", arrives: "{name} comes after the outro.", queued: "Next: {name}, after the outro.", unqueued: "Cancelled: the radio stays on this style.",
+      busyNext: "{name} is already on its way: pick again once it's on air.",
+      handback: "The radio hands control back, the machine keeps playing.", restoring: "Your music is coming back...", restored: "Your music is back. Press PLAY on the machine.",
+      otherPage: "Another FM-1 Radio page is connected to the FM-1: close it (replies get mixed up).", phase: "{phase}{i} · {arc} arc · intro {intro}",
+      waitPlaying: "You're playing: the radio waits.", holding: "The radio stays on this tune.", playing: "On air." },
+    err: { nomidi: "No Web MIDI here: use Chrome or Edge (not Safari).", sysex: "SysEx was refused by the browser.",
+      noport: "No FM-1 port: data cable, no hub, close the other pages and DAWs.", nojiant: "{v}: JIANT not detected.",
+      version: "Unsupported version (id {id}: expected {want}, read {got}).", armed: "A track is armed for recording: disarm it.",
+      noclock: "No clock from the machine: set MENU › CONTROL › MIDI OUT to CLOCK (not ALL), or pick the app clock in Settings.",
+      song: "The machine is in SONG mode: stop, hold SAVE and press D5 for LOOP, then start again." },
+  },
+  fr: {
+    brand: "FM-1 RADIO", onAir: "EN DIRECT", offAir: "HORS ANTENNE", waiting: "EN ATTENTE DE PLAY", by: "émis par", soon: "Bientôt",
+    plugTitle: "Branche ton FM-1", plugIntro: "La radio vérifie tout ce qu'elle peut. Le reste se fait sur la machine.",
+    connect: "Connecter", reconnect: "Reconnecter", start: "Lancer la radio", restoreMine: "Remettre ma musique",
+    c1: "Câble USB data, Chrome ou Edge", c2: "Firmware", c3: "Horloge de la machine", c4: "Mode LOOP, aucune piste armée", c5: "Ta musique",
+    sWait: "en attente", sPort: "PORT FM-1 TROUVÉ", sNoClock: "RIEN REÇU", sClock: "REÇUE", sAppClock: "horloge de l'app (USB)", sAtLaunch: "vérifié au lancement", sArmed: "UNE PISTE EST ARMÉE",
+    sCopy: "une copie est gardée", sNoCopy: "sauvegarde-la (SAVE)",
+    howTitle: "MIDI OUT sur CLOCK", why: "La radio suit l'horloge de ta machine : tu gardes le tempo et tous tes réglages.",
+    steps: [["HOME maintenu 1 s", "le MENU s'ouvre"], ["ALGORITHM", "jusqu'à l'onglet CONTROL"], ["SELECT", "jusqu'à la ligne MIDI OUT"], ["un potard", "de KEYS à CLOCK"], ["HOME", "ferme et enregistre"]],
+    notAll: "Pas ALL : avec ALL, la machine envoie aussi les notes de son séquenceur, et la radio croirait que tu joues.",
+    loopTip: "Mode LOOP : machine arrêtée, maintiens SAVE et appuie sur D5.",
+    listening: "J'écoute l'horloge... ça passe au noir tout seul.", clockOk: "Horloge reçue : c'est bon.", notConnected: "Connecte d'abord le FM-1.",
+    tracks: "Pistes", schedule: "Grille", keptTitle: "Gardés", startStyle: "Style de départ", hintStart: "choisis-en un, ou laisse la radio te surprendre",
+    idxTitle: "Les {n} styles", hintAir: "en couleur : à l'antenne · touche-en un pour le mettre à suivre, encore une fois pour annuler", surprise: "Surprends-moi",
+    toNight: "Passer au thème signal", toDay: "Passer au thème jour",
+    fam: { house: "House et disco", techno: "Techno", synth: "Synth et wave", guitar: "Guitares", groove: "Groove", bass: "Basses et breaks", calm: "Calme", other: "Autres" },
+    next: "Morceau suivant →", keep: "Garder", stay: "Rester ici", resume: "Reprendre la radio", stop: "Arrêter",
+    playing: "Tu joues", playingText: "La radio garde ce morceau et ne touche plus à rien. Elle reprend 30 s après ton dernier geste.",
+    holdingTitle: "On reste ici", holdingText: "La radio garde ce morceau jusqu'à ce que tu la relâches.",
+    meta: "{fam} · {bpm} BPM · énergie {e}",
+    phase: { intro: "intro", build: "montée", peak: "sommet", breakdown: "respiration", outro: "descente" },
+    arcs: { classique: "classique", vague: "vague", lent: "lent", "double sommet": "double sommet" },
+    intros: { nappe: "nappe", "rythme filtré": "rythme filtré", "basse d'abord": "basse d'abord", "écho": "écho", percussions: "percussions" },
+    lane: { off: "coupé", on: "joue", write: "écriture", wait: "en attente" },
+    sched: { played: "joué", now: "en cours", next: "à suivre", surprise: "surprise" },
+    favEmpty: "Rien pour l'instant. Un morceau, c'est un genre, une énergie et une seed : il se rejoue à l'identique.",
+    play: "Jouer", copy: "Copier", remove: "Retirer", fallbackTag: "secours",
+    settings: "Réglages", energy: "Énergie", duration: "Durée d'un morceau", tracksSet: "Pistes", clock: "Horloge",
+    clkMachine: "la machine (tu gardes la main)", clkApp: "l'app (CLOCK USB)", keepMine: "garder une copie de ma musique pour la remettre à la fin",
+    logTitle: "Journal technique",
+    genJiant: "Générateur : {v} (gen.c compilé), {n} genres.",
+    genFallback: "Générateur de secours : gen.c n'est pas encore compilé (gen/build-gen.ps1). Les morceaux sont plus simples et ne correspondent pas aux seeds de la machine.",
+    credits: "Générateur : JIANT de Juan Ignacio Antonucci (GPL-3.0), fork de Felucca par Hügelton Instruments. FM-1 Radio est un logiciel libre sous GPL-3.0.",
+    st: { reading: "Lecture de la musique de la machine...", ready: "Prêt.", usb: "Passage en horloge USB, pistes coupées.",
+      pressPlay: "Appuie sur PLAY sur ta machine (STOP puis PLAY si elle joue déjà). Le premier morceau se charge pendant ce temps.", loading: "Chargement du premier morceau...", stoppedM: "Arrêtée sur la machine : appuie sur PLAY pour reprendre.",
+      kept: "{name} gardé.", arrives: "{name} arrive après la descente.", queued: "Ensuite : {name}, après la descente.", unqueued: "Annulé : la radio reste sur ce style.",
+      busyNext: "{name} arrive déjà : choisis à nouveau quand il sera à l'antenne.",
+      handback: "La radio te rend la main, la machine continue de jouer.", restoring: "Ta musique revient...", restored: "Ta musique est revenue. Appuie sur PLAY sur la machine.",
+      otherPage: "Une autre page FM-1 Radio est connectée au FM-1 : ferme-la (les réponses se mélangent).", phase: "{phase}{i} · arc {arc} · intro {intro}",
+      waitPlaying: "Tu joues : la radio attend.", holding: "La radio reste sur ce morceau.", playing: "En direct." },
+    err: { nomidi: "Pas de Web MIDI ici : utilise Chrome ou Edge (pas Safari).", sysex: "Le navigateur a refusé le SysEx.",
+      noport: "Aucun port FM-1 : câble data, pas de hub, ferme les autres pages et les DAW.", nojiant: "{v} : JIANT non détecté.",
+      version: "Version non prise en charge (id {id} : attendu {want}, lu {got}).", armed: "Une piste est armée en enregistrement : désarme-la.",
+      noclock: "Aucune horloge de la machine : règle MENU › CONTROL › MIDI OUT sur CLOCK (pas ALL), ou choisis l'horloge de l'app dans les réglages.",
+      song: "La machine est en mode SONG : arrête, maintiens SAVE et appuie sur D5 pour LOOP, puis relance." },
+  },
+};
+const LANGS = ["en", "fr", "de", "nl"];
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+                set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+let lang = (() => { const q = QS.get("lang"); if (q && I18N[q]) return q; const s = store.get("fm1radio.lang", null); if (s && I18N[s]) return s;
+  const n = (navigator.language || "en").slice(0, 2); return I18N[n] ? n : "en"; })();
+function T() { return I18N[lang] || I18N.en; }
+function fill(s, v) { return String(s).replace(/\{(\w+)\}/g, (_, k) => (v && v[k] !== undefined ? (typeof v[k] === "function" ? v[k]() : v[k]) : "")); }
+function t(path, v) { let o = T(); for (const p of path.split(".")) o = o == null ? o : o[p]; if (o == null) { o = I18N.en; for (const p of path.split(".")) o = o == null ? o : o[p]; } return typeof o === "string" ? fill(o, v) : o; }
+/* une erreur montrée à l'utilisateur porte une clé du dictionnaire */
+const err = (k, v) => Object.assign(new Error("err." + k), { k: "err." + k, v });
+const msg = e => (e && e.k ? t(e.k, e.v) : String(e && e.message || e));
+let statusMsg = null;
+function status(key, v) { statusMsg = key ? { key, v } : null; renderStatus(); }
+function renderStatus() {
+  const s = statusMsg ? (statusMsg.raw || t(statusMsg.key, statusMsg.v)) : "";
+  if ($("status")) $("status").textContent = s;
+  if ($("plugStatus")) $("plugStatus").textContent = playing ? "" : s;
+}
+function statusErr(e) { statusMsg = { raw: null, key: e.k || null, v: e.v }; if (!e.k) statusMsg.raw = String(e.message || e); renderStatus(); }
+
+/* ----------------------------------------------------------------- journal, utilitaires */
+const t0 = performance.now();
+const $ = id => document.getElementById(id);
+function L(kind, m) { const el = $("log"); el.textContent += `[${((performance.now() - t0) / 1000).toFixed(2)}] ${kind.padEnd(6)} ${m}\n`; el.scrollTop = el.scrollHeight; }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const hex = a => Array.from(a, b => b.toString(16).padStart(2, "0")).join(" ");
+const v14 = v => { v = Math.max(-8192, Math.min(8191, Math.round(v))) + 8192; return [v & 0x7F, (v >> 7) & 0x7F]; };
+const rv14 = (a, i) => (a[i] | (a[i + 1] << 7)) - 8192;
+function rstr(a, i) { let s = ""; while (i < a.length && a[i] !== 0) s += String.fromCharCode(a[i++]); return [s, i + 1]; }
+const pad4 = n => String(n).padStart(4, "0");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ----------------------------------------------------------------- MIDI et liste blanche */
+let access = null, out = null, inp = null, dev = null;
+let allowedGlobals = new Set([G_BPM, G_CLOCK, G_DJF]);
+function allowed(b) {
+  const b0 = b[0];
+  if (b0 === 0xF8 || b0 === 0xFA || b0 === 0xFC) return b.length === 1;
+  if (b0 !== 0xF0 || b[b.length - 1] !== 0xF7) return false;              // ni notes, ni CC, ni Program Change
+  if (b[1] !== HDR[0] || b[2] !== HDR[1] || b[3] !== HDR[2]) return false; // F0 22 .. (update, soft key UBOOT) exclu
+  const cmd = b[4], a = b.slice(5, -1);
+  for (const x of a) if (x > 0x7F) return false;
+  switch (cmd) {
+    case CMD.INFO: case CMD.PING: return a.length === 0;
+    case CMD.GET: case CMD.DESC: return a.length === 2;
+    case CMD.SET: return a.length === 4 && a[0] === 1 && allowedGlobals.has(a[1]);
+    case CMD.PRESET: return a.length === 2;
+    case CMD.NAMES: case CMD.TRACK_DUMP: return a.length === 1;
+    case CMD.TRACK: return a.length <= 1;
+    case CMD.TRACK_STEP: return a.length === 2 || a.length === 15;
+    case CMD.TRACK_PARAM: return a.length === 2 || a.length === 4;
+    case CMD.SONG: return a.length === 1 && a[0] === 0;
+    case CMD.WATCH: return a.length === 1 && (a[0] === 0 || a[0] === 1 || a[0] === 3);
+    default: return false;                                                // PROJECT, UP_*, BACKUP_*, MENU_*, MOTION, SONG set...
+  }
+}
+function send(bytes, ts) {
+  const arr = Uint8Array.from(bytes);
+  if (!allowed(arr)) { L("BLOCK", hex(arr)); throw new Error("frame refused by the whitelist: " + hex(arr)); }
+  if (ts !== undefined) out.send(arr, ts); else out.send(arr);
+}
+let pending = null;
+function onMessage(ev) {
+  const d = ev.data;
+  if (d[0] === 0xF8 || d[0] === 0xFA || d[0] === 0xFC) { machineClock(d[0]); return; }
+  if ((d[0] & 0xF0) === 0x90 && d[2] > 0) { noteIn(); return; }
+  if (d[0] !== 0xF0 || d[1] !== HDR[0] || d[2] !== HDR[1] || d[3] !== HDR[2]) return;
+  const cmd = d[4], args = Array.from(d.slice(5, -1));
+  if (cmd === 23 || cmd === 24 || cmd === 26 || cmd === 32) { onPush(cmd, args); return; }
+  if (pending && pending.cmd === cmd) {
+    if (!echoes(cmd, pending.args, args)) { L("info", `out-of-step reply ignored (command ${cmd}, ${hex(args.slice(0, 3))})`); return; }
+    clearTimeout(pending.timer); const p = pending; pending = null; p.resolve(args);
+  } else L("info", `unrequested reply ignored (command ${cmd})`);
+}
+function echoes(cmd, q, a) {
+  const n = { [CMD.GET]: 2, [CMD.SET]: 2, [CMD.DESC]: 2, [CMD.TRACK_PARAM]: 2, [CMD.TRACK_STEP]: 2, [CMD.TRACK_DUMP]: 1, [CMD.NAMES]: 1 }[cmd] || 0;
+  for (let i = 0; i < n; i++) if (q[i] !== a[i]) return false;
+  return true;
+}
+let selTrack = 0, lastActive = -1e9;   // (pas 0 : performance.now() part de 0 au chargement, la radio aurait cru que tu jouais)
+function onPush(cmd, a) {
+  if (!cur) return;
+  if (cmd === 23) { if (a[0] === 0 && cur.tracks[selTrack]) cur.tracks[selTrack].p[a[1]] = rv14(a, 2); else if (a[0] === 1) cur.globals[a[1]] = rv14(a, 2); }
+  if (cmd === 24 && a.length >= 3) { selTrack = a[2]; if (cur.tracks[selTrack]) { cur.tracks[selTrack].eng = a[0]; cur.tracks[selTrack].preset = a[1]; } }
+  if (cmd === 32 && cur.tracks[a[0]]) { cur.tracks[a[0]].p[a[1]] = rv14(a, 2); if (a[1] === P_MUTE) { lane[a[0]].state = rv14(a, 2) ? "off" : "on"; renderLanes(); } }
+  userActive(cmd === 26 ? "step" : "setting");
+}
+let noteTimes = [], outAllWarned = false;
+function noteIn() {
+  const now = performance.now(); noteTimes = noteTimes.filter(x => now - x < 2000); noteTimes.push(now);
+  if (noteTimes.length > 24) { if (!outAllWarned) { outAllWarned = true; L("warn", "MIDI OUT looks set to ALL: sequencer notes are coming in, set it to CLOCK so the radio knows when you play"); } return; }
+  userActive("key");
+}
+function userActive(what) {
+  if (!playing) return;
+  if (performance.now() - lastActive > 5000) L("play", `you're playing (${what}): the radio waits`);
+  lastActive = performance.now();
+}
+async function rawReq(cmd, args = [], timeout = 2000) {
+  while (pending) await sleep(1);
+  return new Promise((resolve, reject) => {
+    pending = { cmd, args, resolve, timer: setTimeout(() => { pending = null; reject(new Error(`no reply to command ${cmd}`)); }, timeout) };
+    try { send([0xF0, ...HDR, cmd, ...args, 0xF7]); } catch (e) { clearTimeout(pending.timer); pending = null; reject(e); }
+  });
+}
+const Q = { urgent: [], normal: [], busy: false };
+function q(fn, urgent = false) {
+  return new Promise((resolve, reject) => { (urgent ? Q.urgent : Q.normal).push({ fn, resolve, reject }); pump(); });
+}
+async function pump() {
+  if (Q.busy) return; Q.busy = true;
+  while (Q.urgent.length || Q.normal.length) {
+    const it = Q.urgent.length ? Q.urgent.shift() : Q.normal.shift();
+    try { it.resolve(await it.fn()); } catch (e) { it.reject(e); }
+  }
+  Q.busy = false;
+}
+const req = (cmd, args, urgent) => q(async () => {
+  try { return await rawReq(cmd, args); }
+  catch (e) { if (!/no reply/.test(e.message)) throw e; L("info", `command ${cmd} got no reply, retrying`); await sleep(50); return rawReq(cmd, args, 3000); }
+}, urgent);
+const getG = async id => rv14(await req(CMD.GET, [1, id]), 2);
+const setG = async (id, v, urgent) => rv14(await req(CMD.SET, [1, id, ...v14(v)], urgent), 2);
+const tparam = async (k, id, v, urgent) => rv14(await req(CMD.TRACK_PARAM, v === undefined ? [k, id] : [k, id, ...v14(v)], urgent), 2);
+const stepFrom = (a, o) => a.slice(o, o + 13);
+const sameStep = (x, y) => x.every((v, i) => v === y[i]);
+async function readStep(k, i) { return stepFrom(await req(CMD.TRACK_STEP, [k, i]), 2); }
+async function writeStep(k, i, s) { return stepFrom(await req(CMD.TRACK_STEP, [k, i, ...s]), 2); }
+async function trackList() {
+  const a = await req(CMD.TRACK), n = a[1], list = []; let o = 2;
+  for (let i = 0; i < n; i++) { list.push({ eng: a[o], preset: a[o + 1], level: rv14(a, o + 2), mute: a[o + 4], armed: a[o + 5] }); o += 6; }
+  return { sel: a[0], list };
+}
+async function trackDump(k) {
+  const a = await req(CMD.TRACK_DUMP, [k]), p = [];
+  for (let i = 0; i < dev.pCount; i++) p.push(rv14(a, 3 + 2 * i));
+  return { eng: a[1], preset: a[2], p };
+}
+async function names(eng) { const a = await req(CMD.NAMES, [eng]); let o = 2; const l = []; for (let i = 0; i < a[1]; i++) { const [s, n] = rstr(a, o); l.push(s); o = n; } return l; }
+
+/* ----------------------------------------------------------------- connexion */
+let cur = null, presetNames = {}, bc = null;
+const CHK = { usb: "wait", fw: "wait", armed: false, err: null };
+try { bc = new BroadcastChannel("fm1-radio"); bc.onmessage = e => {
+  if (e.data === "who" && dev) bc.postMessage("me");
+  if (e.data === "me") { L("warn", "another FM-1 Radio page is connected to the FM-1"); status("st.otherPage"); }
+}; } catch {}
+let connecting = false, ready = false, starting = false;   // ready : toute la musique de la machine est lue
+async function connect() {
+  if (connecting) return;
+  connecting = true; ready = false; $("connect").disabled = true; setButtons(); CHK.err = null; CHK.usb = "wait"; CHK.fw = "wait"; renderChecks();
+  try {
+    if (bc) bc.postMessage("who");
+    if (!navigator.requestMIDIAccess && !SIM) throw err("nomidi");
+    access = SIM ? simAccess() : await navigator.requestMIDIAccess({ sysex: true });
+    if (!access.sysexEnabled) throw err("sysex");
+    out = [...access.outputs.values()].find(o => /FM-1/i.test(o.name));
+    inp = [...access.inputs.values()].find(i => /FM-1/i.test(i.name));
+    if (!out || !inp) throw err("noport");
+    inp.onmidimessage = onMessage;
+    CHK.usb = "ok"; renderChecks();
+    const a = await req(CMD.INFO); let o, s; [s, o] = rstr(a, 0);
+    dev = { version: s, nEng: a[o], pCount: a[o + 1], gCount: a[o + 2], nStep: a[o + 3] }; o += 5;
+    dev.engines = []; for (let i = 0; i < dev.nEng; i++) { [s, o] = rstr(a, o); dev.engines.push(s); }
+    dev.nTrk = a[o];
+    const tags = a.slice(o + 2); dev.jiant = false;
+    for (let i = 0; i + 2 < tags.length; i++) if (tags[i] === 0x4A && tags[i + 1] === 1 && tags[i + 2] === 1) dev.jiant = true;
+    if (!dev.jiant) { CHK.fw = "bad"; throw err("nojiant", { v: dev.version }); }
+    L("info", `${dev.version}, ${dev.nTrk} tracks, P_COUNT ${dev.pCount}, G_COUNT ${dev.gCount}`);
+    const ids = [[0, P_LEVEL, "LEVEL"], [0, P_SLEN, "LEN"], [0, P_MUTE, "MUTE"], [1, G_BPM, "BPM"], [1, G_CLOCK, "CLOCK"], [1, G_DJF, "DJ FILT"], [0, 33, "DIST"], [0, 34, "CHORUS"], [0, 35, "DLY"], [0, 36, "REV"]];
+    for (const [sc, id, want] of ids) {
+      const [label] = rstr(await req(CMD.DESC, [sc, id]), 9);
+      if (label !== want) { CHK.fw = "bad"; throw err("version", { id: `${sc}/${id}`, want, got: label }); }
+    }
+    const okG = new Set([G_BPM, G_CLOCK, G_DJF]); gByLabel = {};
+    for (let id = 0; id < dev.gCount; id++) { const [label] = rstr(await req(CMD.DESC, [1, id]), 9); if (GLOBAL_LABELS_OK.has(label)) { okG.add(id); if (gByLabel[label] === undefined) gByLabel[label] = id; } }
+    allowedGlobals = okG;
+    CHK.fw = "ok"; renderChecks(); renderHeader();
+    status("st.reading");
+    cur = { tracks: [], globals: {} };
+    for (let k = 0; k < dev.nTrk; k++) {
+      const d = await trackDump(k), steps = [];
+      for (let i = 0; i < dev.nStep; i++) steps.push(await readStep(k, i));
+      cur.tracks.push({ eng: d.eng, preset: d.preset, p: d.p, steps });
+    }
+    for (const id of allowedGlobals) cur.globals[id] = await getG(id);
+    for (const e of [0, 2, 7, 8, 10, 11, 12, 13]) if (dev.engines[e] && dev.engines[e] !== "-") presetNames[e] = await names(e);
+    CHK.armed = (await trackList()).list.some(x => x.armed);
+    $("conn").textContent = dev.version;
+    ready = true; status("st.ready"); renderLanes(); checkVersion();
+  } catch (e) { L("ERROR", msg(e)); if (CHK.usb !== "ok") CHK.usb = "bad"; CHK.err = e; statusErr(e); }
+  finally { connecting = false; $("connect").disabled = false; $("connect").textContent = dev ? t("reconnect") : t("connect"); renderChecks(); setButtons(); }
+}
+
+/* ----------------------------------------------------------------- générateur */
+let GEN = null;
+async function loadGen() {
+  try {
+    const m = await import("./gen/jiant-gen.mjs");
+    const mod = await m.default();
+    const piece = mod.cwrap("gen_piece", "string", ["number", "number", "number", "number", "number", "number"]);
+    const ng = mod.cwrap("gen_ngenre", "number", []), gn = mod.cwrap("gen_genre_name", "string", ["number"]);
+    const genres = []; for (let i = 0; i < ng(); i++) genres.push(gn(i));
+    GEN = { kind: "jiant", version: mod.cwrap("gen_version", "string", [])(), genres,
+            piece: (g, seed, e, c, h, six) => JSON.parse(piece(g, seed, e, c, h, six)) };
+  } catch (e) {
+    GEN = fallbackGen();
+    L("info", "jiant-gen.mjs missing: fallback generator (" + e.message + ")");
+  }
+  renderGenInfo();
+}
+function renderGenInfo() { if (GEN) $("genInfo").textContent = GEN.kind === "jiant" ? t("genJiant", { v: GEN.version, n: GEN.genres.length }) : t("genFallback"); }
+function checkVersion() {
+  if (GEN && GEN.kind === "jiant" && dev && GEN.version !== dev.version)
+    L("warn", `generator ${GEN.version} and machine ${dev.version}: seeds won't give the same tune as GEN on the machine`);
+}
+function genreIndex(name) {
+  if (name === "EXPLORE") return GEN.genres.length + 1;
+  const i = GEN.genres.indexOf(name); return i >= 0 ? i + 1 : 1;
+}
+
+/* générateur de secours, en attendant gen.c : simple et honnête, des presets choisis par leur nom */
+function fallbackGen() {
+  const G = [["HOUSE",120,126],["DEEP HOUSE",118,124],["MICRO HOUSE",122,128],["TECH HOUSE",124,128],["ACID HOUSE",122,130],["TECHNO",128,136],["DETROIT",124,132],["DUB TECHNO",118,126],["HARD TECHNO",138,150],["HYPNOTIC",128,134],["TRANCE",134,140],["ELECTRO",128,135],["EBM",92,104],["ITALO",118,124],["SYNTH POP",112,126],["DARKWAVE",132,140],["POST PUNK",118,148],["TRIBAL PUNK",140,165],["MINIMAL SYNTH",110,130],["MAN MACHINE",100,118],["MOTORIK",118,140],["INDIE",110,140],["SHOEGAZE",100,130],["POST ROCK",84,118],["FUNK",96,112],["DISCO",114,124],["BOOM BAP",86,96],["TRAP",132,148],["UK GARAGE",130,136],["DUBSTEP",138,142],["BREAKS",126,140],["DRUM & BASS",170,176],["DUB",70,80],["STEPPERS",76,88],["JAZZ",110,150],["BOSSA",120,140],["AFROBEAT",110,128],["AMBIENT",60,90],["NEO CLASSIC",70,112],["IMPRESSION",60,92],["SOUNDTRACK",64,92],["IDM",90,140],["BROKEN",110,124]];
+  const rng = s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const pick = (r, a) => a[Math.floor(r() * a.length)];
+  const REST = [0, 0, 0, 0, 0, 2, 0, 100, 0, 0, 0, 100, 1], TIE = [0, 0, 0, 0, 0, 1, 0, 100, 0, 0, 0, 100, 1];
+  const note = (ns, vel = 100) => [ns.length, ns[0] || 0, ns[1] || 0, ns[2] || 0, ns[3] || 0, 0, 0, vel, 0, 0, 0, 100, 1];
+  const hits = (bits, vel = 100) => bits ? [0, 0, 0, 0, 0, 0, 0, vel, bits & 0x7F, 0, bits >> 7, 100, 1] : REST.slice();
+  function choosePreset(r, role) {
+    const want = { 1: /BASS|SUB|303|ACID|LOW/, 2: /PAD|STR|CHOIR|WARM|AIR|DRONE|SOFT|GLASS/, 3: /LEAD|SAW|SYNC|SQUARE|SOLO/, 4: /PLUCK|ARP|BELL|KEY|MALLET|EP|PIANO|HARP/, 5: /WIND|NOISE|TEXT|FX|RAIN|SEA/ }[role];
+    const cands = [];
+    for (const [e, list] of Object.entries(presetNames)) if (+e !== 10) list.forEach((n, i) => { if (want.test(n.toUpperCase())) cands.push([+e, i]); });
+    return cands.length ? pick(r, cands) : [0, Math.floor(r() * 4)];
+  }
+  return { kind: "fallback", version: "fallback", genres: G.map(g => g[0]),
+    piece(gi, seed, energy, complex, human, six) {
+      const r = rng(seed * 7919 + gi * 104729), info = G[(gi - 1) % G.length] || ["EXPLORE", 90, 130];
+      const name = gi > G.length ? "EXPLORE" : info[0], n = name;
+      const bpm = Math.round(info[1] + (info[2] - info[1]) * (0.3 + 0.7 * energy / 100) * (0.6 + 0.4 * r()));
+      const root = 33 + Math.floor(r() * 12), minor = r() < 0.75;
+      const sc = minor ? (r() < 0.5 ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 3, 5, 7, 9, 10]) : [0, 2, 4, 5, 7, 9, 11];
+      const prog = pick(r, minor ? [[0, 5, 2, 6], [0, 3, 4, 0], [0, 6, 5, 6], [0, 0, 3, 4]] : [[0, 4, 5, 3], [0, 3, 4, 3], [0, 5, 3, 4]]);
+      const deg = (d, oct = 0) => root + 12 * oct + sc[((d % 7) + 7) % 7] + 12 * Math.floor(d / 7);
+      const chord = (d, oct) => [deg(d, oct), deg(d + 2, oct), deg(d + 4, oct), deg(d + 6, oct)];
+      const fourFloor = /HOUSE|TECHNO|DETROIT|TRANCE|DISCO|ITALO|SYNTH|MOTORIK|HYPNOTIC|MINIMAL|MAN MACHINE|ELECTRO|DARKWAVE|EBM/.test(n);
+      const halfTime = /BOOM BAP|DUB\b|DUB$|STEPPERS|TRAP|DUBSTEP|JAZZ|BOSSA|SOUNDTRACK/.test(n);
+      const ambient = /AMBIENT|IMPRESSION|NEO CLASSIC/.test(n);
+      const dens = 0.25 + 0.6 * energy / 100;
+      const tracks = [];
+      // DRUM : 16 pas, lanes BD SD CP CH OH TM RS CB = bits 0..7
+      const drum = [];
+      for (let i = 0; i < 16; i++) {
+        let b = 0;
+        if (ambient) { if (i === 0 && r() < 0.6) b |= 1; if (i % 4 === 2 && r() < dens * 0.5) b |= 64; }
+        else if (fourFloor) { if (i % 4 === 0) b |= 1; if (i % 8 === 4) b |= 4; if (i % 4 === 2) b |= 16; else if (r() < dens) b |= 8; }
+        else if (halfTime) { if (i === 0 || (i === 10 && r() < 0.7)) b |= 1; if (i === 8) b |= 2; if (i % 2 === 0 && r() < dens + 0.2) b |= 8; if (i === 7 && r() < 0.4) b |= 64; }
+        else { if (i === 0 || i === 6 || (i === 10 && r() < 0.5)) b |= 1; if (i === 4 || i === 12) b |= 2; if (i % 2 === 0) b |= 8; }
+        drum.push(hits(b, b & 1 ? 110 : 90));
+      }
+      tracks.push({ role: 0, eng: 10, preset: Math.floor(r() * Math.max(1, (presetNames[10] || [0]).length || 1)), pSet: { [P_SLEN]: 16 }, len: 16, steps: drum });
+      // BASS : 64 pas, racine de l'accord de chaque mesure
+      const bass = [];
+      for (let bar = 0; bar < 4; bar++) for (let i = 0; i < 16; i++) {
+        const d = prog[bar], hit = ambient ? i === 0 : halfTime ? (i === 0 || (i === 10 && r() < 0.6)) : (i % 4 === 2 || (i === 0 && r() < 0.5) || r() < dens * 0.25);
+        bass.push(hit ? note([deg(d, 0)], 100) : REST.slice());
+      }
+      const [be, bp] = choosePreset(r, 1); tracks.push({ role: 1, eng: be, preset: bp, pSet: { [P_SLEN]: 64 }, len: 64, steps: bass });
+      // PAD : un accord tenu par mesure
+      const padS = [];
+      for (let bar = 0; bar < 4; bar++) for (let i = 0; i < 16; i++) padS.push(i === 0 ? note(chord(prog[bar], 1).slice(0, 3 + (r() < 0.5 ? 1 : 0)), 80) : TIE.slice());
+      const [pe, pp] = choosePreset(r, 2); tracks.push({ role: 2, eng: pe, preset: pp, pSet: { [P_SLEN]: 64 }, len: 64, steps: padS });
+      // ARP : les notes de l'accord en doubles croches
+      const arp = [];
+      for (let bar = 0; bar < 4; bar++) { const c = chord(prog[bar], 2); for (let i = 0; i < 16; i++) arp.push((i % 2 === 0 || r() < dens * 0.6) ? note([c[(i >> (r() < 0.5 ? 0 : 1)) % 4]], 70 + Math.floor(r() * 30)) : REST.slice()); }
+      const [ae, ap] = choosePreset(r, 4); tracks.push({ role: 4, eng: ae, preset: ap, pSet: { [P_SLEN]: 64 }, len: 64, steps: arp });
+      // LEAD : un motif rare, mesures 2 et 4
+      const lead = []; const motif = [0, 2, 4, 3, 1, 4, 2, 0].map(x => x + Math.floor(r() * 3));
+      for (let bar = 0; bar < 4; bar++) for (let i = 0; i < 16; i++) {
+        const on = bar % 2 === 1 && i % 4 === 0 && r() < 0.5 + energy / 300;
+        lead.push(on ? note([deg(prog[bar] + motif[(i / 4 + bar) % 8], 2)], 90) : (lead.length && lead[lead.length - 1][5] !== 2 && r() < 0.5 ? TIE.slice() : REST.slice()));
+      }
+      const [le, lp] = choosePreset(r, 3); tracks.push({ role: 3, eng: le, preset: lp, pSet: { [P_SLEN]: 64 }, len: 64, steps: lead });
+      // TEX : vide, sauf ambient
+      const tex = []; for (let i = 0; i < 16; i++) tex.push(ambient && i === 0 ? note([deg(0, 3)], 60) : REST.slice());
+      const [te, tp] = choosePreset(r, 5); tracks.push({ role: 5, eng: te, preset: tp, pSet: { [P_SLEN]: 16 }, len: 16, steps: tex });
+      const SENDS = { 0: [0, 0, 0, 12], 1: [8, 0, 0, 0], 2: [0, 22, 10, 40], 3: [6, 0, 28, 30], 4: [0, 12, 30, 22], 5: [0, 0, 20, 55] };
+      for (const t of tracks) { const sd = SENDS[t.role]; t.pSet[33] = sd[0]; t.pSet[34] = sd[1]; t.pSet[35] = sd[2]; t.pSet[36] = sd[3]; }
+      if (!six) { tracks[4].mute = true; tracks[5].mute = true; }
+      return { version: "fallback", genre: gi, genreName: name, seed, energy, complex, human, bpm, globals: {}, tracks };
+    } };
+}
+
+
+
+/* ----------------------------------------------------------------- horloge */
+const CLK = { on: false, mode: "machine", worker: null, P: 0, nextTs: 0, bpm: 120, ramp: null, pts: new Map(), waits: [], running: false, started: null, pulses: 0, lastPulse: 0 };
+const LOOK = 1500;
+function bpmAt(p) {
+  const r = CLK.ramp; if (!r) return CLK.bpm;
+  if (p >= r.p1) { CLK.bpm = r.to; CLK.ramp = null; return r.to; }
+  return r.from + (r.to - r.from) * Math.max(0, (p - r.p0) / (r.p1 - r.p0));
+}
+function clockTick() {
+  const now = performance.now();
+  while (CLK.nextTs < now + LOOK) {
+    send([0xF8], Math.max(CLK.nextTs, now));
+    CLK.pts.set(CLK.P, CLK.nextTs);
+    CLK.P++;
+    CLK.nextTs += 60000 / (bpmAt(CLK.P) * 24 * SPEED);
+  }
+  for (const k of CLK.pts.keys()) if (k < CLK.P - 2000) CLK.pts.delete(k);
+  CLK.waits = CLK.waits.filter(w => { const ts = CLK.pts.get(w.pulse); if (ts !== undefined && now >= ts - w.lead) { w.resolve(); return false; } return true; });
+}
+function machineClock(b) {
+  CLK.pulses++; CLK.lastPulse = performance.now();
+  if (CLK.mode !== "machine" || !CLK.on) return;
+  if (b === 0xFA) { CLK.P = 0; CLK.running = true; if (CLK.started) { CLK.started(); CLK.started = null; } L("clock", "PLAY on the machine"); renderHeader(); return; }
+  if (b === 0xFC) { CLK.running = false; L("clock", "STOP on the machine"); status("st.stoppedM"); CLK.waits.forEach(w => w.resolve()); CLK.waits = []; renderHeader(); return; }
+  if (!CLK.running) return;
+  CLK.P++;
+  CLK.waits = CLK.waits.filter(w => { if (CLK.P >= w.pulse - 1) { w.resolve(); return false; } return true; });
+}
+function playedPulse() {
+  if (CLK.mode === "machine") return CLK.P;
+  const now = performance.now(); let p = CLK.P - 1;
+  while (p > 0 && (CLK.pts.get(p) ?? -Infinity) > now) p--;
+  return p;
+}
+const waitPulse = (pulse, lead = 30) => new Promise(resolve => CLK.waits.push({ pulse, lead, resolve }));
+const BAR = 96, PHRASE = 4 * BAR;
+const nextBoundary = (unit, ahead = 0) => (Math.floor(playedPulse() / unit) + 1 + ahead) * unit;
+const waitBar = () => waitPulse(nextBoundary(BAR));
+const waitPhrase = () => waitPulse(nextBoundary(PHRASE));
+function clockStart(bpm) {
+  CLK.bpm = bpm; CLK.ramp = null; CLK.P = 0; CLK.pts.clear(); CLK.waits = [];
+  CLK.nextTs = performance.now() + 80;
+  send([0xFA], CLK.nextTs - 1);
+  const src = "let h=null;onmessage=e=>{if(e.data==='stop'){clearInterval(h);return;}h=setInterval(()=>postMessage(0),20);}";
+  CLK.worker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+  CLK.worker.onmessage = clockTick; CLK.worker.postMessage("go"); CLK.on = true; CLK.running = true;
+}
+function clockRamp(to, bars) {
+  if (CLK.mode === "app") { const p0 = CLK.P; CLK.ramp = { from: bpmAt(p0), to, p0, p1: p0 + bars * BAR }; return; }
+  const id = runId, from = CLK.bpm, n = Math.max(1, bars * 4);
+  (async () => {
+    for (let i = 1; i <= n && id === runId; i++) {
+      await waitPulse(nextBoundary(24), 0); if (id !== runId) return;
+      const v = Math.round(from + (to - from) * i / n);
+      if (v !== cur.globals[G_BPM]) cur.globals[G_BPM] = await setG(G_BPM, v, true);
+    }
+    CLK.bpm = to;
+  })();
+}
+function clockStop() {
+  if (!CLK.on) return; CLK.on = false;
+  if (CLK.mode === "app") { CLK.worker.postMessage("stop"); CLK.worker.terminate(); try { send([0xFC]); } catch {} }
+  CLK.waits.forEach(w => w.resolve()); CLK.waits = [];
+  if (CLK.started) { const f = CLK.started; CLK.started = null; f(); }   // arrêt avant le PLAY de la machine
+}
+
+/* ----------------------------------------------------------------- écrire un morceau dans la machine */
+const lane = Array.from({ length: 6 }, () => ({ state: "off", role: null, pct: 0 }));
+const written = [];                                  // le contenu que chaque piste a reçu en entier
+async function setMute(k, m) {
+  if (cur.tracks[k].p[P_MUTE] !== m) cur.tracks[k].p[P_MUTE] = await tparam(k, P_MUTE, m, true);
+  lane[k].state = cur.tracks[k].p[P_MUTE] ? "off" : "on"; renderLanes();
+}
+async function pushTrack(k, tk, label = "") {
+  const c = cur.tracks[k];
+  lane[k].state = "write"; lane[k].pct = 0; lane[k].role = tk.role ?? null; renderLanes();
+  { const d = await trackDump(k); c.eng = d.eng; c.preset = d.preset; c.p = d.p;
+    for (let i = 0; i < tk.len && i < dev.nStep; i++) c.steps[i] = await readStep(k, i); }
+  const m0 = c.p[P_MUTE];
+  if (c.eng !== tk.eng || c.preset !== tk.preset) {
+    const sel = (await trackList()).sel;
+    await req(CMD.TRACK, [k]);
+    await req(CMD.PRESET, [tk.eng, tk.preset]);
+    if (sel !== k) await req(CMD.TRACK, [sel]);
+    selTrack = sel;
+    const d = await trackDump(k);
+    c.eng = d.eng; c.preset = d.preset; c.p = d.p;
+    if (c.p[P_MUTE] !== m0) c.p[P_MUTE] = await tparam(k, P_MUTE, m0, true);
+  }
+  const want = {};
+  if (tk.p) tk.p.forEach((v, i) => { want[i] = v; });
+  if (tk.pSet) Object.assign(want, tk.pSet);
+  delete want[P_MUTE];
+  const ids = Object.keys(want).map(Number).filter(i => i < dev.pCount && c.p[i] !== want[i]);
+  const steps = [];
+  for (let i = 0; i < tk.len && i < dev.nStep; i++) if (!sameStep(c.steps[i], tk.steps[i])) steps.push(i);
+  const total = ids.length + steps.length; let done = 0;
+  const tick = () => { lane[k].pct = Math.round(100 * ++done / Math.max(1, total)); if (done % 6 === 0) renderLanes(); };
+  for (const i of ids) { c.p[i] = await tparam(k, i, want[i]); tick(); }
+  for (const i of steps) { c.steps[i] = await writeStep(k, i, tk.steps[i]); tick(); }
+  lane[k].state = c.p[P_MUTE] ? "off" : "on"; lane[k].pct = 0; renderLanes();
+  written[k] = tk;
+  L("track", `${k + 1} ${label}${ROLE[tk.role] || ""}: ${dev.engines[tk.eng]} preset ${tk.preset}, ${ids.length} params, ${steps.length} steps`);
+}
+async function pushGlobals(g) {
+  for (const [id, v] of Object.entries(g || {})) {
+    const i = +id; if (!allowedGlobals.has(i) || i === G_BPM || i === G_CLOCK || i === G_DJF) continue;
+    if (cur.globals[i] !== v) cur.globals[i] = await setG(i, v);
+  }
+}
+const shouldPlay = tk => !tk.mute && !(tk.p && tk.p[P_MUTE]);
+
+/* ----------------------------------------------------------------- la radio */
+let holding = false;
+let station = { genre: "DEEP HOUSE", energy: 40 }, playing = false, piece = null, nextPiece = null, saved = null, origClock = 0, origBpm = 120, runId = 0;
+const NOW = { arc: null, phases: [], done: 0, at: 0, intro: null, next: null, ph: -1 };
+const history = [];
+function newSeed() { return Math.floor(Math.random() * 10000); }
+function makePiece(st, seed) {
+  const e = +$("energy").value, gi = genreIndex(st.genre);
+  return GEN.piece(gi, seed ?? newSeed(), e, 50, 30, +$("six").value);
+}
+const pieceName = p => `${p.genreName} ${pad4(p.seed)}`;
+async function preflight() {
+  const tl = await trackList();
+  CHK.armed = tl.list.some(x => x.armed); renderChecks();
+  if (CHK.armed) throw err("armed");
+}
+async function start() {
+  const id = ++runId;
+  try {
+    await preflight();
+    playing = true; holding = false; setView(); setButtons();
+    if ($("keepMine").checked) saved = JSON.parse(JSON.stringify(cur));
+    origClock = await getG(G_CLOCK); origBpm = await getG(G_BPM);
+    selTrack = (await trackList()).sel;
+    piece = makePiece(station); NOW.arc = null; NOW.next = null; renderNow();
+    CLK.mode = $("clk").value;
+    for (let k = 0; k < dev.nTrk; k++) await setMute(k, 1);
+    const ctx0 = prepFirst(piece);                    // l'écriture commence tout de suite, pendant l'attente du PLAY
+    if (CLK.mode === "app") {
+      status("st.loading");
+      if (ctx0.firstK !== null) await ctx0.prep[ctx0.firstK];
+      if (id !== runId) return;
+      status("st.usb");
+      await setG(G_CLOCK, 1, true);
+      await sleep(150);
+      clockStart(piece.bpm);
+    } else {
+      if (origClock !== 0) await setG(G_CLOCK, 0, true);
+      cur.globals[G_BPM] = await setG(G_BPM, piece.bpm, true); CLK.bpm = piece.bpm;
+      CLK.on = true; CLK.running = false; CLK.P = 0; CLK.waits = [];
+      const p0 = CLK.pulses; await sleep(1500);
+      if (CLK.pulses === p0) throw err("noclock");
+      status("st.pressPlay"); renderHeader();
+      await new Promise(r => { CLK.started = r; });
+      if (id !== runId) return;
+    }
+    await req(CMD.WATCH, [3], true);                  // (file urgente : les écritures du premier morceau sont devant)
+    await sleep(600);
+    const song = await req(CMD.SONG, [0], true);
+    if (song[3] === 1) throw err("song");
+    status("st.playing"); renderHeader();
+    radio(id, ctx0).catch(e => { if (id === runId) { L("ERROR", msg(e)); statusErr(e); } });
+  } catch (e) { L("ERROR", msg(e)); await stop(); statusErr(e); }
+}
+
+/* =========================================================================================================
+ * Le mix. Chaque morceau suit un arc (intro, montée, sommet, respiration, descente) tiré de sa seed et de son
+ * énergie. Les intros varient (pas toujours le rythme d'abord). Les effets de JIANT (envois DIST, CHORUS, DLY, REV
+ * par piste, FEEDBK et SIZE globaux, DJ FILTER) portent l'émotion. Entre deux morceaux, une piste de l'ancien sert
+ * de pont pendant que le nouveau commence. Tout se joue aux limites de phrase (4 mesures).
+ * ========================================================================================================= */
+const P_DIST = 33, P_CHOR = 34, P_DLY = 35, P_REV = 36;
+const FXK = { dist: P_DIST, chor: P_CHOR, dly: P_DLY, rev: P_REV };
+const R = { DRUM: 0, BASS: 1, PAD: 2, LEAD: 3, ARP: 4, TEX: 5 };
+const mulberry = s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const pickR = (rnd, a) => a[Math.floor(rnd() * a.length)];
+let gByLabel = {};                                   // label d'un global vers son id (lu par DESC à la connexion)
+let wantNext = false;
+const userBusy = () => performance.now() - lastActive < 30000 / (FAST ? 30 : 1);
+const INTROS = [
+  { name: "nappe", order: [R.PAD, R.TEX, R.ARP, R.BASS], fx: { [R.PAD]: { rev: 45, chor: 25 }, [R.ARP]: { dly: 35, rev: 20 } } },
+  { name: "rythme filtré", order: [R.DRUM, R.BASS, R.ARP], djf: [-42, -8] },
+  { name: "basse d'abord", order: [R.BASS, R.DRUM, R.PAD], fx: { [R.BASS]: { dist: 12 } } },
+  { name: "écho", order: [R.LEAD, R.ARP, R.PAD], fx: { [R.LEAD]: { dly: 50, rev: 40 }, [R.ARP]: { dly: 40, rev: 15 } } },
+  { name: "percussions", order: [R.DRUM, R.TEX, R.ARP], fx: { [R.DRUM]: { rev: 25 } }, djf: [-24, 0] },
+];
+const ARCS = {
+  "classique": ["intro:2", "build:1", "peak:4*", "breakdown:2", "build:1", "peak:4*", "outro:2"],
+  "vague": ["intro:2", "peak:3*", "breakdown:2", "peak:3*", "breakdown:1", "outro:2"],
+  "lent": ["intro:3", "build:2", "peak:5*", "breakdown:2", "outro:3"],
+  "double sommet": ["intro:1", "build:2", "peak:3*", "breakdown:1", "build:2", "peak:4*", "outro:2"],
+};
+/* les pistes d'un morceau qui jouent vraiment : une piste coupée par le générateur ou sans note ne compte pas */
+function items(p) {
+  return p.tracks.map((t, k) => ({ t, k, role: t.role })).filter(({ t, k }) =>
+    k < dev.nTrk && shouldPlay(t) && t.steps.some(s => s[5] === 0 && (s[0] || s[8] || s[10])));
+}
+function planArc(p, rnd) {
+  const e = p.energy, names = e < 30 ? ["lent", "vague"] : e < 65 ? ["classique", "vague", "lent"] : ["classique", "double sommet"];
+  const name = pickR(rnd, names);
+  const target = Math.max(8, Math.round(+$("dur").value * p.bpm / 16));   // une phrase = 16 temps
+  let phases = ARCS[name].map(x => { const [kind, n] = x.split(":"); return { kind, n: parseInt(n), stretch: n.endsWith("*") }; });
+  const fixed = phases.filter(f => !f.stretch).reduce((a, f) => a + f.n, 0), str = phases.filter(f => f.stretch);
+  const each = Math.max(2, Math.round((target - fixed) / str.length));
+  str.forEach(f => { f.n = Math.max(f.n, each); });
+  return { name, phases };
+}
+function chooseIntro(p, rnd, avoidK) {
+  const it = items(p), ok = INTROS.filter(ir => { const f = it.find(x => x.role === ir.order.find(r => it.some(y => y.role === r))); return f && f.k !== avoidK; });
+  return pickR(rnd, ok.length ? ok : INTROS);
+}
+/* effets : rampes douces, un cran par demi-mesure ; rien ne bouge quand le musicien joue */
+const fxTok = {};
+function fxTo(k, id, target, bars, id0) {
+  const key = k * 200 + id, tok = (fxTok[key] = (fxTok[key] || 0) + 1);
+  target = Math.max(0, Math.min(127, Math.round(target)));
+  (async () => {
+    const from = cur.tracks[k].p[id], n = Math.max(1, Math.round(bars * 2));
+    for (let i = 1; i <= n; i++) {
+      if (bars > 0) await waitPulse(nextBoundary(BAR / 2), 0);
+      if (fxTok[key] !== tok || id0 !== runId) return;
+      if (userBusy()) continue;
+      const v = Math.round(from + (target - from) * i / n);
+      if (v !== cur.tracks[k].p[id]) cur.tracks[k].p[id] = await tparam(k, id, v, true);
+    }
+  })();
+}
+let djfTok = 0;
+function djfTo(target, bars, id0) {
+  const tok = ++djfTok;
+  (async () => {
+    const from = cur.globals[G_DJF] ?? 0, n = Math.max(1, Math.round(bars * 2));
+    for (let i = 1; i <= n; i++) {
+      if (bars > 0) await waitPulse(nextBoundary(BAR / 2), 0);
+      if (djfTok !== tok || id0 !== runId) return;
+      const v = Math.round(from + (target - from) * i / n);
+      if (v !== cur.globals[G_DJF]) cur.globals[G_DJF] = await setG(G_DJF, v, true);
+    }
+  })();
+}
+const gTok = {};
+function gTo(label, target, bars, id0) {
+  const id = gByLabel[label]; if (id === undefined || !allowedGlobals.has(id)) return;
+  const tok = (gTok[id] = (gTok[id] || 0) + 1);
+  (async () => {
+    const from = cur.globals[id], n = Math.max(1, Math.round(bars * 2));
+    for (let i = 1; i <= n; i++) {
+      await waitPulse(nextBoundary(BAR / 2), 0);
+      if (gTok[id] !== tok || id0 !== runId || userBusy()) return;
+      const v = Math.round(from + (target - from) * i / n);
+      if (v !== cur.globals[id]) cur.globals[id] = await setG(id, v, true);
+    }
+  })();
+}
+async function calm(id) { let said = false; while (userBusy() && id === runId) { if (!said) { status("st.waitPlaying"); said = true; } await sleep(500); } }
+
+/* les pistes s'écrivent l'une après l'autre, dans l'ordre où elles entreront : en parallèle, leurs messages se
+   mêlent dans la file et la première piste n'est prête qu'avec la dernière */
+let writeChain = Promise.resolve();
+function pushSerial(k, tk, label, id = runId) {
+  const p = writeChain.then(() => id === runId ? pushTrack(k, tk, label) : undefined);
+  writeChain = p.catch(() => {});
+  return p;
+}
+/* premier morceau : tout est coupé, on écrit l'intro d'abord, le reste en fond, puis les globaux */
+function prepFirst(p) {
+  const ctx = { bridge: null, prep: {}, intro: chooseIntro(p, mulberry(p.seed * 7 + 1), -1), first: true };
+  const rank = x => { const i = ctx.intro.order.indexOf(x.role); return i < 0 ? 99 : i; };
+  const order = items(p).sort((a, b) => rank(a) - rank(b));
+  for (const x of order) ctx.prep[x.k] = pushSerial(x.k, x.t);
+  ctx.firstK = order.length ? order[0].k : null;
+  pushGlobals(p.globals).catch(e => L("ERROR", msg(e)));
+  return ctx;
+}
+async function radio(id, ctx) {
+  let p = piece;
+  while (id === runId && playing) {
+    const next = await playPiece(p, id, ctx);
+    if (!next || id !== runId) return;
+    p = next.piece; ctx = next.ctx;
+  }
+}
+async function playPiece(p, id, ctx) {
+  const rnd = mulberry(p.seed * 7 + 1), it = items(p), arc = planArc(p, rnd), intro = ctx.intro;
+  const base = {}; const active = new Set(); let bridge = ctx.bridge;
+  const byRole = r => it.filter(x => x.role === r);
+  const total = arc.phases.reduce((a, f) => a + f.n, 0); let done = 0;
+  piece = p; wantNext = false;
+  L("mix", `${pieceName(p)}: ${arc.name} arc (${arc.phases.map(f => f.kind + " " + f.n).join(", ")}), intro ${intro.name}${bridge ? ", bridge on track " + (bridge.k + 1) : ""}`);
+  async function ready(x) {
+    await ctx.prep[x.k];
+    if (base[x.k] === undefined) base[x.k] = Object.fromEntries(Object.entries(FXK).map(([n, i]) =>
+      [n, x.t.p ? x.t.p[i] : (x.t.pSet && x.t.pSet[i] !== undefined ? x.t.pSet[i] : cur.tracks[x.k].p[i])]));
+  }
+  const entTok = {};                                 // une sortie annule une entrée encore en attente de son écriture
+  async function enter(x, fx, bars = 1) {
+    const tok = (entTok[x.k] = (entTok[x.k] || 0) + 1);
+    await ready(x); if (id !== runId || entTok[x.k] !== tok) return;
+    if (bridge && bridge.k === x.k) return;           // la piste porte encore le pont
+    if (playedPulse() % BAR > 6) { await waitPulse(nextBoundary(BAR), 20); if (id !== runId || entTok[x.k] !== tok) return; }   // écrite en retard : sur la mesure suivante
+    for (const [n, i] of Object.entries(FXK)) fxTo(x.k, i, base[x.k][n] + ((fx && fx[n]) || 0), bars, id);
+    await setMute(x.k, 0); active.add(x.k);
+  }
+  /* une entrée ne bloque jamais le déroulé : une piste encore en écriture entre sur la mesure qui suit son écriture */
+  const go = (x, fx, bars) => { enter(x, fx, bars).catch(e => { if (id === runId) L("ERROR", msg(e)); }); };
+  async function exit(x) { entTok[x.k] = (entTok[x.k] || 0) + 1; await setMute(x.k, 1); active.delete(x.k); }
+  function shapeFx(x, fx, bars) { if (base[x.k]) for (const [n, i] of Object.entries(FXK)) fxTo(x.k, i, base[x.k][n] + ((fx && fx[n]) || 0), bars, id); }
+  async function releaseBridge() {
+    if (!bridge) return;
+    const b = bridge; bridge = null;
+    await setMute(b.k, 1);
+    const x = it.find(y => y.k === b.k);
+    if (x) ctx.prep[b.k] = pushSerial(b.k, x.t, "new ");
+  }
+  async function phrase() {
+    if (ctx.first) ctx.first = false;                                // premier morceau : l'intro part dès le PLAY
+    else {
+      await waitPhrase(); if (id !== runId) return false;
+      if (userBusy()) { await calm(id); await waitPhrase(); }        // le musicien jouait : on reprend sur une limite de phrase
+    }
+    done++; NOW.done++; NOW.at = Math.floor(playedPulse() / PHRASE) * PHRASE; renderArc();
+    while (CLK.mode === "machine" && !CLK.running && id === runId) await sleep(300);
+    return id === runId;
+  }
+  let curPh = 0;
+  const say = (kind, i, n) => { if (NOW.ph !== curPh) { NOW.ph = curPh; renderArc(); }
+    status("st.phase", { phase: () => t("phase." + kind), i: n > 1 ? ` ${i + 1}/${n}` : "", arc: () => t("arcs." + arc.name), intro: () => t("intros." + intro.name) }); };
+  const g0 = { FEEDBK: cur.globals[gByLabel.FEEDBK], SIZE: cur.globals[gByLabel.SIZE] };
+  const e = p.energy;
+  let phases = arc.phases.slice();
+  Object.assign(NOW, { arc: arc.name, phases, done: 0, at: playedPulse(), intro: intro.name, next: null, ph: -1 });
+  history.push({ at: new Date(), name: pieceName(p) }); renderNow();
+  for (let ph = 0; ph < phases.length; ph++) {
+    const f = phases[ph]; curPh = ph;
+    if (wantNext && f.kind !== "outro") { const o = phases.findIndex((x, i) => i > ph && x.kind === "outro"); if (o > ph) { NOW.done = phases.slice(0, o).reduce((a, x) => a + x.n, 0); NOW.at = playedPulse(); renderArc(); ph = o - 1; continue; } }
+    if (f.kind === "outro" && (holding || userBusy()) && !wantNext) {   // on reste : une respiration puis un sommet de plus
+      phases.splice(ph, 0, { kind: "breakdown", n: 2 }, { kind: "build", n: 1 }, { kind: "peak", n: 4 }); ph--; continue;
+    }
+    if (f.kind === "intro") {
+      const order = intro.order.flatMap(r => byRole(r)).filter(x => !active.has(x.k));
+      if (intro.djf) { cur.globals[G_DJF] = await setG(G_DJF, intro.djf[0], true); djfTo(intro.djf[1], f.n * 4, id); }
+      for (let i = 0; i < f.n; i++) {
+        if (!(await phrase())) return null; say("intro", i, f.n);
+        if (i === 1 || i === f.n - 1) await releaseBridge();
+        const take = i === f.n - 1 ? order.length : 1;
+        for (const x of order.splice(0, take)) go(x, intro.fx && intro.fx[x.role], 2);
+      }
+      await releaseBridge();
+    } else if (f.kind === "build") {
+      const waiting = it.filter(x => !active.has(x.k) && x.role !== R.DRUM && x.role !== R.BASS && x.role !== R.LEAD);
+      for (const x of it) if (active.has(x.k) && x.role !== R.DRUM) shapeFx(x, { dly: 18, rev: 15 }, f.n * 4);
+      for (let i = 0; i < f.n; i++) {
+        if (!(await phrase())) return null; say("build", i, f.n);
+        const x = waiting.shift(); if (x) go(x, { dly: 18, rev: 15 }, 2);
+        if (i === f.n - 1) {
+          djfTo(28 + Math.round(e / 5), 4, id);                       // le filtre monte sur la dernière phrase
+          await waitPulse(nextBoundary(PHRASE) - BAR, 20); if (id !== runId) return null;
+          if (e >= 35) for (const y of it) if (active.has(y.k) && (y.role === R.DRUM || y.role === R.BASS)) await exit(y);   // une mesure de vide avant le sommet
+        }
+      }
+    } else if (f.kind === "peak") {
+      const tex = rnd() < 0.5;
+      for (let i = 0; i < f.n; i++) {
+        if (!(await phrase())) return null; say("peak", i, f.n);
+        if (i === 0) {
+          djfTo(0, 0, id); gTo("FEEDBK", g0.FEEDBK, 1, id); gTo("SIZE", g0.SIZE, 1, id);
+          const drive = Math.round(e / 7);
+          for (const x of it) if (x.role !== R.TEX || tex) go(x, { dist: x.role === R.BASS || x.role === R.LEAD ? drive : 0 }, 0.5);
+        } else if (i % 4 === 3 && i < f.n - 1) {                       // toutes les 4 phrases, un geste
+          const voices = it.filter(x => active.has(x.k) && (x.role === R.LEAD || x.role === R.ARP || x.role === R.PAD));
+          const drums = it.filter(x => active.has(x.k) && x.role === R.DRUM);
+          const ev = pickR(rnd, ["retrait", "écho", "coupure", "filtre"]);
+          L("mix", `peak: ${ev} gesture`);
+          if (ev === "retrait" && voices.length) {                      // une voix se retire une phrase
+            const v = pickR(rnd, voices); await exit(v); if (!(await phrase())) return null; say("peak", ++i, f.n); go(v, {}, 1);
+          } else if (ev === "écho" && voices.length) {                  // un lancer de delay sur une voix, puis retour
+            const v = pickR(rnd, voices); shapeFx(v, { dly: 45, rev: 20 }, 1);
+            await waitPulse(nextBoundary(PHRASE) - BAR, 20); shapeFx(v, {}, 1);
+          } else if (ev === "coupure" && drums.length) {               // le rythme se tait la dernière mesure
+            await waitPulse(nextBoundary(PHRASE) - BAR, 20); for (const d of drums) await exit(d);
+            if (!(await phrase())) return null; say("peak", ++i, f.n); for (const d of drums) go(d, {}, 0.5);
+          } else {                                                       // le filtre maître respire sur une phrase
+            djfTo(-20, 2, id); await waitPulse(nextBoundary(PHRASE) - BAR, 20); djfTo(0, 1, id);
+          }
+        }
+      }
+    } else if (f.kind === "breakdown") {
+      for (let i = 0; i < f.n; i++) {
+        if (!(await phrase())) return null; say("breakdown", i, f.n);
+        if (i === 0) {
+          const melodic = it.filter(x => x.role !== R.DRUM && x.role !== R.BASS);
+          for (const x of it) if (active.has(x.k) && (x.role === R.DRUM || (x.role === R.BASS && melodic.length))) await exit(x);
+          for (const x of melodic) if (!active.has(x.k) && x.role !== R.LEAD) go(x, {}, 1);
+          for (const x of it) if (active.has(x.k)) shapeFx(x, { [R.PAD]: { rev: 50, chor: 30 }, [R.LEAD]: { dly: 40, rev: 35 }, [R.ARP]: { dly: 35, rev: 20 }, [R.TEX]: { rev: 40 } }[x.role] || { rev: 30 }, 4);
+          gTo("FEEDBK", Math.min(120, (g0.FEEDBK ?? 60) + 22), 4, id); gTo("SIZE", Math.min(127, (g0.SIZE ?? 90) + 25), 4, id);
+          djfTo(-14, f.n * 4, id);
+        }
+      }
+    } else if (f.kind === "outro") {
+      // le morceau suivant, son intro et le pont qui les relie
+      const np = nextPiece || makePiece(station); nextPiece = null;
+      const nIntro = chooseIntro(np, mulberry(np.seed * 7 + 1), -1);
+      const nIt = items(np), firstK = (nIt.find(x => x.role === nIntro.order.find(r => nIt.some(y => y.role === r))) || {}).k;
+      const cand = it.filter(x => active.has(x.k) && x.k !== firstK);
+      const pref = nIntro.order[0] === R.DRUM ? [R.PAD, R.ARP, R.TEX, R.BASS, R.DRUM] : [R.DRUM, R.PAD, R.BASS, R.ARP, R.TEX];
+      const ranked = pref.map(r => cand.find(x => x.role === r)).filter(Boolean);
+      const br = ranked.length ? ranked[rnd() < 0.65 || ranked.length < 2 ? 0 : 1] : null;
+      L("mix", `to ${pieceName(np)}: intro ${nIntro.name}, bridge ${br ? ROLE[br.role] + " (track " + (br.k + 1) + ")" : "none"}`);
+      NOW.next = np; renderNow();
+      const prep = {};
+      const nPlay = new Set(nIt.map(x => x.k));
+      const free = k => { const t = np.tracks[k]; if (t && nPlay.has(k) && (!br || k !== br.k)) prep[k] = pushSerial(k, t, "new "); };
+      const nRank = k => { const i = np.tracks[k] ? nIntro.order.indexOf(np.tracks[k].role) : -1; return i < 0 ? 99 : i; };
+      [...Array(dev.nTrk).keys()].filter(k => !active.has(k)).sort((x, y) => nRank(x) - nRank(y)).forEach(free);   // pistes déjà libres : tout de suite, l'intro d'abord
+      const leaving = [R.LEAD, R.ARP, R.TEX, R.BASS, R.PAD, R.DRUM].flatMap(r => it.filter(x => x.role === r && active.has(x.k) && (!br || x.k !== br.k)));
+      if (br) shapeFx(br, { rev: 30, dly: 15 }, f.n * 4);
+      for (let i = 0; i < f.n; i++) {
+        if (!(await phrase())) return null; say("outro", i, f.n);
+        const n = i === f.n - 1 ? leaving.length : Math.ceil(leaving.length / (f.n - i));
+        for (const x of leaving.splice(0, n)) { await exit(x); free(x.k); }
+        if (i === f.n - 1) clockRamp(np.bpm, 4);
+      }
+      gTo("FEEDBK", g0.FEEDBK, 1, id); gTo("SIZE", g0.SIZE, 1, id);
+      await pushGlobals(np.globals);
+      if (!br) djfTo(0, 0, id);
+      return { piece: np, ctx: { bridge: br ? { k: br.k } : null, prep, intro: nIntro } };
+    }
+  }
+  return null;
+}
+
+
+async function stop() {
+  runId++; const was = playing; playing = false;
+  clockStop();
+  try {
+    for (const it of Q.normal) it.reject(new Error("stopped")); Q.normal.length = 0;   // (rejetés : la chaîne d'écriture ne reste pas bloquée)
+    if (dev && was) {
+      await setG(G_DJF, 0, true);
+      try { await req(CMD.WATCH, [0], true); } catch {}
+      if (CLK.mode === "app") await setG(G_CLOCK, origClock, true);
+      if (piece) { if (CLK.mode === "app") await setG(G_BPM, Math.max(40, Math.min(240, piece.bpm)), true); for (const x of items(piece)) if (written[x.k] === x.t) await setMute(x.k, 0); }   // (une piste non écrite garde l'ancien morceau : elle reste coupée)
+    }
+  } catch (e) { L("ERROR", msg(e)); }
+  if (was) status(CLK.mode === "machine" ? "st.handback" : null);
+  setView(); setButtons(); renderHeader();
+}
+async function restoreMine() {
+  if (!saved || playing) return;
+  $("restoreMine").disabled = true; status("st.restoring");
+  try {
+    for (let k = 0; k < dev.nTrk; k++) {
+      await setMute(k, 1);
+      const s = saved.tracks[k];
+      await pushTrack(k, { role: null, eng: s.eng, preset: s.preset, p: s.p, len: dev.nStep, steps: s.steps }, "your music ");
+      if (!s.p[P_MUTE]) await setMute(k, 0);
+    }
+    for (const [id, v] of Object.entries(saved.globals)) if (+id !== G_CLOCK && cur.globals[id] !== v) cur.globals[id] = await setG(+id, v);
+    saved = null; status("st.restored");
+  } catch (e) { L("ERROR", msg(e)); statusErr(e); }
+  setButtons();
+}
+
+/* ----------------------------------------------------------------- favoris */
+function favs() { return store.get("fm1radio.favs", []); }
+function renderFavs() {
+  const f = favs(); $("favEmpty").classList.toggle("hidden", f.length > 0);
+  $("favs").innerHTML = f.map((x, i) => `<li><span>${esc(x.genreName)} ${pad4(x.seed)} · E${x.energy}${x.version === "fallback" ? " · " + esc(t("fallbackTag")) : ""}</span>
+    <button data-play="${i}" ${playing ? "" : "disabled"}>${esc(t("play"))}</button><button data-copy="${i}">${esc(t("copy"))}</button><button data-del="${i}">${esc(t("remove"))}</button></li>`).join("");
+}
+$("favs").onclick = async e => {
+  const b = e.target.closest("button"); if (!b) return; const f = favs();
+  if (b.dataset.play !== undefined) { const x = f[+b.dataset.play]; nextPiece = GEN.piece(x.genre, x.seed, x.energy, x.complex, x.human, +$("six").value); wantNext = true; status("st.arrives", { name: pieceName(nextPiece) }); renderSched(); }
+  if (b.dataset.copy !== undefined) { const x = f[+b.dataset.copy]; try { await navigator.clipboard.writeText(`FM-1 Radio · ${x.version} · ${x.genreName} · seed ${pad4(x.seed)} · energy ${x.energy}`); } catch {} }
+  if (b.dataset.del !== undefined) { f.splice(+b.dataset.del, 1); store.set("fm1radio.favs", f); renderFavs(); }
+};
+$("fav").onclick = () => {
+  if (!piece) return; const f = favs();
+  if (!f.some(x => x.genre === piece.genre && x.seed === piece.seed && x.energy === piece.energy))
+    f.unshift({ genre: piece.genre, genreName: piece.genreName, seed: piece.seed, energy: piece.energy, complex: piece.complex, human: piece.human, version: piece.version, at: Date.now() });
+  store.set("fm1radio.favs", f); renderFavs(); status("st.kept", { name: pieceName(piece) });
+};
+
+/* ----------------------------------------------------------------- interface */
+function setView() { $("viewPlug").classList.toggle("hidden", playing); $("viewAir").classList.toggle("hidden", !playing); fitTitle(); }
+/* thème : jour ou signal, retenu sur ce navigateur */
+let theme = store.get("fm1radio.theme", "day") === "signal" ? "signal" : "day";
+const SUN = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>';
+const MOON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></svg>';
+function applyTheme() {
+  document.documentElement.dataset.theme = theme;
+  document.querySelector('meta[name="theme-color"]').content = theme === "signal" ? "#FF5A1F" : "#F4F4F2";
+  const b = $("themeBtn"), label = theme === "signal" ? t("toDay") : t("toNight");
+  b.innerHTML = theme === "signal" ? SUN : MOON; b.title = label; b.setAttribute("aria-label", label);
+}
+$("themeBtn").onclick = () => { theme = theme === "signal" ? "day" : "signal"; store.set("fm1radio.theme", theme); applyTheme(); };
+function renderHeader() {
+  const p = $("pill"), on = playing && (CLK.mode === "app" || CLK.running), wait = playing && !on;
+  p.className = "pill" + (on ? " on" : wait ? " wait" : "");
+  $("pillText").textContent = on ? t("onAir") : wait ? t("waiting") : t("offAir");
+  $("byWrap").classList.toggle("hidden", !dev);
+  if (dev) { $("fwBadge").textContent = dev.jiant ? "JIANT FM" : "?"; $("fwVer").textContent = dev.version.replace(/^JIANT\s*/, ""); }
+  $("langs").innerHTML = LANGS.map(c => `<button data-lang="${c}" class="${c === lang ? "on" : ""}" ${I18N[c] ? "" : `disabled title="${esc(t("soon"))}"`}>${c.toUpperCase()}</button>`).join("");
+}
+$("langs").onclick = e => { const b = e.target.closest("button"); if (!b || b.disabled) return; lang = b.dataset.lang; store.set("fm1radio.lang", lang); renderAll(); };
+function renderStatic() {
+  document.documentElement.lang = lang;
+  for (const el of document.querySelectorAll("[data-t]")) el.textContent = t(el.dataset.t);
+  $("connect").textContent = dev ? t("reconnect") : t("connect");
+  $("steps").innerHTML = t("steps").map(([k, w], i) => `<li><span class="n">${i + 1}</span><span class="k">${esc(k)}</span><span>${esc(w)}</span></li>`).join("");
+  applyTheme();
+}
+function checkRows() {
+  const clockMode = $("clk").value, clockOk = performance.now() - CLK.lastPulse < 1200;
+  const c3 = clockMode === "app" ? ["ok", t("sAppClock")] : !dev ? ["wait", t("sWait")] : clockOk ? ["ok", t("sClock")] : ["bad", t("sNoClock")];
+  return [
+    [t("c1"), CHK.usb === "ok" ? ["ok", t("sPort")] : CHK.usb === "bad" ? ["bad", CHK.err && CHK.fw !== "bad" ? msg(CHK.err) : "?"] : ["wait", t("sWait")]],
+    [t("c2"), CHK.fw === "ok" ? ["ok", dev.version] : CHK.fw === "bad" ? ["bad", dev ? dev.version : "?"] : ["wait", t("sWait")]],
+    [t("c3"), c3],
+    [t("c4"), CHK.armed ? ["bad", t("sArmed")] : ["wait", t("sAtLaunch")]],
+    [t("c5"), ["info", $("keepMine").checked ? t("sCopy") : t("sNoCopy")]],
+  ];
+}
+const ICON = { ok: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  bad: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="2"/></svg>' };
+function renderChecks() {
+  $("checks").innerHTML = checkRows().map(([label, [s, txt]], i) =>
+    `<div class="check ${s === "bad" ? "bad" : s === "wait" || s === "info" ? "wait" : ""}"><span>0${i + 1}</span><span>${esc(label)}</span><span class="s">${ICON[s] || ""}${esc(txt)}</span></div>`).join("");
+  const clockOk = performance.now() - CLK.lastPulse < 1200 || $("clk").value === "app";
+  $("listen").className = "listen" + (clockOk && dev ? " ok" : "");
+  $("listen").querySelector("span").textContent = !dev ? t("notConnected") : clockOk ? t("clockOk") : t("listening");
+}
+
+/* l'index des styles : les genres du générateur, rangés par famille */
+function styleFamilies() {
+  const known = GEN ? GEN.genres : FAMILIES.flatMap(f => f.g);
+  const fams = FAMILIES.map(f => ({ key: f.key, energy: f.energy, g: f.g.filter(g => known.includes(g)) })).filter(f => f.g.length);
+  const placed = new Set(fams.flatMap(f => f.g)), other = known.filter(g => !placed.has(g));
+  if (other.length) fams.push({ key: "other", energy: 45, g: other });
+  return fams;
+}
+const famOf = g => styleFamilies().find(f => f.g.includes(g));
+function renderIndex() {
+  const fams = styleFamilies(), n = fams.reduce((a, f) => a + f.g.length, 0);
+  const onAir = playing && piece ? piece.genreName : null;
+  const queued = playing ? (NOW.next || nextPiece || {}).genreName || null : null;
+  const html = air => fams.map(f => `<div class="fam"><span>${esc(t("fam." + f.key))}</span>${f.g.map(g => {
+    const on = air ? g === onAir : station.genre === g, q = air && g === queued && g !== onAir;
+    return `<button data-genre="${esc(g)}" class="${on ? "on" : ""}${q ? " q" : ""}" aria-pressed="${on || q}">${esc(g)}</button>`;
+  }).join("")}</div>`).join("");
+  $("idxPlug").innerHTML = html(false); $("idxAir").innerHTML = html(true);
+  $("idxTitle").textContent = t("idxTitle", { n });
+  const explore = station.genre === "EXPLORE";
+  $("surprisePlug").classList.toggle("on", explore); $("surprisePlug").setAttribute("aria-pressed", explore);
+  $("play").textContent = `${t("start")} · ${explore ? t("surprise") : station.genre}`;
+}
+function pickStyle(g) {
+  if (playing && piece && !NOW.next) {
+    const queued = nextPiece && wantNext ? nextPiece.genreName : null;
+    if (g === queued) { nextPiece = null; wantNext = false; status("st.unqueued"); renderIndex(); renderSched(); return; }   // second clic : on annule
+  }
+  if (playing && NOW.next) { status("st.busyNext", { name: pieceName(NOW.next) }); return; }   // la bascule est déjà lancée
+  const f = famOf(g);
+  station = { genre: g, energy: g === "EXPLORE" ? 50 : f ? f.energy : 45 };
+  $("energy").value = station.energy; $("energyV").textContent = station.energy;
+  store.set("fm1radio.style", g);
+  if (playing) { nextPiece = makePiece(station); wantNext = true; status("st.queued", { name: pieceName(nextPiece) }); renderSched(); }
+  renderIndex(); setButtons();
+}
+for (const id of ["idxPlug", "idxAir"]) $(id).onclick = e => { const b = e.target.closest("button[data-genre]"); if (b) pickStyle(b.dataset.genre); };
+$("surprisePlug").onclick = () => pickStyle("EXPLORE");
+$("surprise").onclick = () => pickStyle("EXPLORE");
+
+/* le titre prend toute la largeur sans déborder */
+function fitTitle() {
+  const el = $("title"), box = $("titleBox"); if (!box.clientWidth) return;
+  let size = Math.min(196, Math.max(56, box.clientWidth * 0.3));
+  el.style.fontSize = size + "px";
+  while (el.scrollWidth > box.clientWidth && size > 36) { size -= 6; el.style.fontSize = size + "px"; }
+}
+window.addEventListener("resize", fitTitle);
+function renderNow() {
+  if (!piece) return;
+  const tt = $("title");
+  if (NOW.next) tt.innerHTML = `<span class="old">${esc(piece.genreName)}</span><span class="arrow">→</span><span class="new">${esc(NOW.next.genreName)}</span>`;
+  else tt.textContent = piece.genreName;
+  const p = NOW.next || piece, f = famOf(p.genreName);
+  $("seed").textContent = `N° ${pad4(p.seed)}`;
+  $("meta").textContent = t("meta", { fam: f ? t("fam." + f.key) : p.genreName, bpm: p.bpm, e: p.energy });
+  fitTitle(); renderArc(); renderSched(); renderIndex();
+}
+/* la silhouette de l'arc : un point par phrase */
+function arcLevels(phases) {
+  const lv = [4];
+  for (const f of phases) for (let i = 0; i < f.n; i++) {
+    const x = (i + 1) / f.n;
+    lv.push(f.kind === "intro" ? 8 + 37 * x : f.kind === "build" ? 50 + 32 * x : f.kind === "peak" ? 94 + (i % 2 ? 6 : 0) - (i % 3 === 2 ? 4 : 0)
+      : f.kind === "breakdown" ? 42 - 6 * x : 50 - 44 * x);
+  }
+  return lv;
+}
+function renderArc() {
+  const phases = NOW.phases || [], total = phases.reduce((a, f) => a + f.n, 0);
+  if (!total) { $("arcAll").setAttribute("d", ""); $("arcDone").setAttribute("d", ""); $("phases").innerHTML = ""; return; }
+  const lv = arcLevels(phases), W = 1000, H = 96, x = i => (i * W / total).toFixed(1), y = v => (H - v * (H - 4) / 100).toFixed(1);
+  const area = upto => `M0,${H} ` + lv.slice(0, upto + 1).map((v, i) => `L${x(i)},${y(v)}`).join(" ") + ` L${x(upto)},${H} Z`;
+  $("arcAll").setAttribute("d", area(total));
+  headX = -1; drawHead();
+  $("arc").setAttribute("aria-label", NOW.arc ? `${t("arcs." + NOW.arc) || NOW.arc}` : "");
+  $("phases").innerHTML = phases.map((f, i) => `<span style="flex: ${f.n} 1 0" class="${i === NOW.ph ? "cur" : ""}">${esc(t("phase." + f.kind))}</span>`).join("");
+}
+/* la partie jouée de l'arc et la tête de lecture, à chaque image : la phrase en cours avance avec l'horloge.
+   NOW.done compte les phrases commencées ; dans une phrase, la part jouée vient des impulsions depuis son début. */
+function arcProgress() {
+  const total = (NOW.phases || []).reduce((a, f) => a + f.n, 0);
+  if (!total || !NOW.done) return 0;
+  return Math.min(total, NOW.done - 1 + Math.min(1, Math.max(0, (playedPulse() - NOW.at) / PHRASE)));
+}
+let headX = -1;
+function drawHead() {
+  const phases = NOW.phases || [], total = phases.reduce((a, f) => a + f.n, 0); if (!total) return;
+  const prog = arcProgress(), x = prog * 1000 / total;
+  if (Math.abs(x - headX) < 0.05) return;
+  headX = x;
+  const lv = arcLevels(phases), H = 96, y = v => (H - v * (H - 4) / 100).toFixed(1), i0 = Math.floor(prog);
+  const vAt = i0 < lv.length - 1 ? lv[i0] + (lv[i0 + 1] - lv[i0]) * (prog - i0) : lv[lv.length - 1];
+  const pts = lv.slice(0, i0 + 1).map((v, i) => `L${(i * 1000 / total).toFixed(1)},${y(v)}`).join(" ");
+  $("arcDone").setAttribute("d", `M0,${H} ${pts} L${x.toFixed(1)},${y(vAt)} L${x.toFixed(1)},${H} Z`);
+  $("arcHead").setAttribute("x1", x.toFixed(1)); $("arcHead").setAttribute("x2", x.toFixed(1));
+}
+(function frame() { if (playing && !document.hidden) drawHead(); requestAnimationFrame(frame); })();
+/* les pistes : allumée, coupée, en cours d'écriture (avec sa progression) */
+function renderLanes() {
+  const n = dev ? dev.nTrk : 6;
+  $("lanes").innerHTML = Array.from({ length: n }, (_, k) => {
+    const ln = lane[k], st = ln.state === "write" ? (ln.pct ? `${ln.pct} %` : t("lane.wait")) : t("lane." + ln.state);
+    return `<div class="lane ${ln.state}" role="listitem" title="${esc(ln.state === "write" ? t("lane.write") + " " + ln.pct + " %" : t("lane." + ln.state))}">
+      <i style="width:${ln.state === "write" ? ln.pct : 0}%"></i><b>${ln.role !== null ? ROLE[ln.role] : "T" + (k + 1)}</b><span>${esc(st)}</span></div>`;
+  }).join("");
+}
+const hhmm = d => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+function renderSched() {
+  const rows = history.slice(-3).map((h, i, a) => [hhmm(h.at), h.name, i === a.length - 1 ? "now" : "played"]);
+  const nx = NOW.next || nextPiece;
+  rows.push(["", nx ? pieceName(nx) : "...", nx ? "next" : "surprise"]);
+  $("sched").innerHTML = rows.map(([tm, name, k]) => `<div class="${k}"><span>${tm} ${esc(name)}</span><span>${esc(t("sched." + k))}</span></div>`).join("");
+}
+function renderBanner() {
+  const busy = playing && userBusy(), show = playing && (busy || holding);
+  $("banner").classList.toggle("hidden", !show);
+  if (!show) return;
+  $("bannerTitle").textContent = busy ? t("playing") : t("holdingTitle");
+  $("bannerText").textContent = busy ? t("playingText") : t("holdingText");
+  const left = busy ? 1 - (performance.now() - lastActive) / (30000 / (FAST ? 30 : 1)) : 1;
+  $("bannerGauge").style.width = Math.max(0, Math.min(100, left * 100)) + "%";
+}
+function setButtons() {
+  const clockOk = $("clk").value === "app" || performance.now() - CLK.lastPulse < 1200;
+  $("play").disabled = !ready || connecting || starting || !station || playing || CHK.fw !== "ok" || !clockOk;
+  for (const id of ["stop", "next", "fav", "hold", "surprise"]) $(id).disabled = !playing;
+  $("hold").textContent = holding ? t("resume") : t("stay");
+  $("hold").classList.toggle("on", holding);
+  $("restoreMine").classList.toggle("hidden", !saved || playing);
+  $("restoreMine").disabled = playing || !saved;
+  renderFavs();
+}
+function renderAll() { renderStatic(); renderHeader(); renderChecks(); renderIndex(); renderLanes(); renderNow(); renderSched(); renderStatus(); renderGenInfo(); setButtons(); }
+$("energy").oninput = () => { $("energyV").textContent = $("energy").value; };
+$("clk").onchange = () => { renderChecks(); setButtons(); };
+$("keepMine").onchange = renderChecks;
+$("connect").onclick = connect;
+$("play").onclick = async () => { if (playing || starting || !ready) return; starting = true; setButtons(); try { await start(); } finally { starting = false; setButtons(); } };
+$("stop").onclick = stop;
+$("next").onclick = () => { if (playing) { nextPiece = makePiece(station); holding = false; lastActive = -1e9; wantNext = true; setButtons(); status("st.arrives", { name: pieceName(nextPiece) }); renderSched(); renderIndex(); } };
+$("restoreMine").onclick = restoreMine;
+$("hold").onclick = () => { holding = !holding; setButtons(); status(holding ? "st.holding" : "st.playing"); };
+window.addEventListener("beforeunload", e => { if (playing) { e.preventDefault(); e.returnValue = ""; } });
+setInterval(() => { renderBanner(); if (!playing) { renderChecks(); setButtons(); } }, 400);
+(async () => {
+  const g = store.get("fm1radio.style", null);
+  if (typeof g === "string" && (g === "EXPLORE" || FAMILIES.some(f => f.g.includes(g)))) { const f = famOf(g); station = { genre: g, energy: g === "EXPLORE" ? 50 : f ? f.energy : 45 }; }
+  $("energy").value = station.energy; $("energyV").textContent = station.energy;
+  renderAll();
+  await loadGen();
+  renderIndex();
+})();
+
+/* =========================================================================================================
+ * Simulateur (?sim=1, ?sim=1&fast=1) : un faux FM-1 JIANT V10.26. Les trames reçues sont dans window.__simSent.
+ * ========================================================================================================= */
+function simAccess() {
+  const ENG = ["ANALOG", "-", "PHASE", "LOFI", "-", "VOICE", "-", "WHEEL", "STRING", "-", "DRUM", "NOISE", "FM6", "ADD", "ANIMAL"];
+  const PC = 123, GC = 72, NT = 6, NS = 64;
+  const GL = ["BPM", "SWING", "CLOCK", "TUNE", "TIME", "FEEDBK", "TONE", "MIX", "SIZE", "DAMP", "RATE", "DEPTH", "MIDI", "REL", "ROUTE", "INFO", "SLOT", "DJ FILT", "LOAD", "SAVE", "ENG", "CLIP", "CLRSEQ", "INIT", "TYPE", "PUNCH", "DUCK"];
+  const label = (sc, id) => sc ? (GL[id] || (id < 40 ? "MOD" : "X" + id)) : ({ 0: "LEVEL", 29: "LEN", 40: "MUTE", 33: "DIST", 34: "CHORUS", 35: "DLY", 36: "REV" }[id] || "P" + id);
+  const g = new Array(GC).fill(0); g[0] = 125;
+  const st = () => [1, 48, 0, 0, 0, 0, 0, 100, 0, 0, 0, 100, 1];
+  const trk = Array.from({ length: NT }, (_, i) => ({ eng: [10, 12, 0, 0, 7, 11][i], preset: 0, p: Array.from({ length: PC }, (_, j) => j === 0 ? 100 : j === 29 ? 32 : 0), step: Array.from({ length: NS }, st) }));
+  let sel = 0, songRunning = false, watch = 0, playingM = false; const LAT = FAST ? 3 : 90;
+  window.__simSent = []; window.__sim = { g, trk };
+  const rt = b => input.onmidimessage && input.onmidimessage({ data: Uint8Array.from([b]) });
+  setTimeout(function pulse() { if (g[2] === 0) rt(0xF8); setTimeout(pulse, 60000 / (Math.max(40, g[0]) * 24 * SPEED)); }, 0);   // MIDI OUT CLOCK : aussi à l'arrêt
+  window.__simPlay = () => { playingM = true; rt(0xFA); };
+  window.__simStop = () => { playingM = false; rt(0xFC); };
+  window.__simTouch = () => { if (watch) reply(32, [2, 33, ...v14(70)]); };
+  window.__simKey = () => input.onmidimessage && input.onmidimessage({ data: Uint8Array.from([0x90, 60, 100]) });
+  const input = { name: "FM-1 (sim)", onmidimessage: null };
+  const reply = (cmd, args, slow) => setTimeout(() => input.onmidimessage && input.onmidimessage({ data: Uint8Array.from([0xF0, ...HDR, cmd, ...args, 0xF7]) }), slow ? LAT : 2);
+  const str = s => [...s].map(c => c.charCodeAt(0)).concat(0);
+  const output = { name: "FM-1 (sim)", send(data) {
+    const d = Array.from(data); window.__simSent.push(d);
+    if (d[0] !== 0xF0) return;
+    const cmd = d[4], a = d.slice(5, -1);
+    switch (cmd) {
+      case 1: reply(1, [...str("JIANT V10.26"), ENG.length, PC, GC, NS, 115, ...ENG.flatMap(str), NT, 16, 0x55, 1, 0, 0x4D, 1, 64, 1, 0x4A, 1, 1]); break;
+      case 2: reply(2, [a[0], a[1], ...v14(a[0] ? g[a[1]] : trk[sel].p[a[1]])]); break;
+      case 3: g[a[1]] = rv14(a, 2); reply(3, [a[0], a[1], ...v14(g[a[1]])], true); break;
+      case 5: reply(5, [a[0], a[1], 0, ...v14(0), ...v14(127), ...v14(0), ...str(label(a[0], a[1])), ...str("")]); break;
+      case 8: trk[sel].eng = a[0]; trk[sel].preset = a[1]; reply(8, [a[0], a[1]]); break;
+      case 10: reply(10, [a[0], 6, ...["INIT", "SUB BASS", "WARM PAD", "SAW LEAD", "PLUCK", "WIND"].flatMap(str), ...str("E1"), ...str("E2")]); break;
+      case 27: if (a.length) sel = a[0]; reply(27, [sel, NT, ...trk.flatMap(t => [t.eng, t.preset, ...v14(t.p[0]), t.p[40], 0])]); break;
+      case 29: reply(29, [a[0], trk[a[0]].eng, trk[a[0]].preset, ...trk[a[0]].p.flatMap(v14)]); break;
+      case 30: { const t = trk[a[0]]; if (a.length === 15) t.step[a[1]] = a.slice(2); reply(30, [a[0], a[1], ...t.step[a[1]]], a.length === 15); break; }
+      case 31: { const t = trk[a[0]]; if (a.length === 4) t.p[a[1]] = rv14(a, 2); reply(31, [a[0], a[1], ...v14(t.p[a[1]])], a.length === 4); break; }
+      case 33: reply(33, [0, 0, 0, songRunning ? 1 : 0, 0, 0]); break;
+      case 22: watch = a[0]; reply(22, [a[0]]); break;
+    }
+  } };
+  return { sysexEnabled: true, inputs: new Map([["i", input]]), outputs: new Map([["o", output]]) };
+}
+
+</script>
+</body>
+</html>

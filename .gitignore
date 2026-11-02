@@ -1,0 +1,4 @@
+reference/
+recordings/
+app/gen/*.mjs.map
+CLAUDE.local.md
