@@ -1,0 +1,8 @@
+{
+  "url": "https://CHANGEME.example",
+  "live": "/api/live",
+  "csp": {
+    "script": [],
+    "connect": []
+  }
+}

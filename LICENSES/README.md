@@ -10,3 +10,10 @@ Ce fichier compilé embarque tout le harnais hôte de JIANT (`tests/ui_test.c`),
 | CMU Pronouncing Dictionary, les mots anglais de VOICE (`sing.c`) | BSD-2-Clause | `BSD-2-Clause-CMUdict.txt` |
 | Polices Chakra Petch, Inter Tight, Michroma, rastérisées dans l'interface | SIL OFL 1.1 | `OFL-*.txt` |
 | Police d'icônes Fukiai (Hügelton Instruments), rastérisée | MIT | `MIT-Fukiai.txt` |
+
+Le site publié sert aussi deux polices, hébergées avec lui (`site/assets/fonts/`) :
+
+| Partie | Licence | Texte |
+| --- | --- | --- |
+| Inter Tight (titres) | SIL OFL 1.1 | `OFL-InterTight.txt` |
+| DM Mono (texte) | SIL OFL 1.1 | `OFL-DMMono.txt` |

@@ -1,0 +1,5 @@
+# fins de ligne LF dans le dépôt, quel que soit le système
+* text=auto eol=lf
+*.png binary
+*.woff2 binary
+*.mjs -diff

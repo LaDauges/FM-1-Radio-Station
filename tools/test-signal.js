@@ -14,14 +14,14 @@ const file = process.argv[2], out = process.argv[3] || '.';
   R.playEnabled = await p.evaluate(() => !document.getElementById('play').disabled);
   // horloge absente
   await p.evaluate(() => { window.__sim.g[2] = 1; }); await p.waitForTimeout(1800);
-  R.noClock = await p.evaluate(() => [document.querySelectorAll('.check')[2].className, document.getElementById('play').disabled, document.getElementById('listen').textContent]);
+  R.noClock = await p.evaluate(() => [document.querySelector('.check[data-step=clock]').className, document.getElementById('play').disabled, document.getElementById('listen').textContent]);
   await p.screenshot({ path: out + '/s2-noclock.png' });
   await p.evaluate(() => { window.__sim.g[2] = 0; }); await p.waitForTimeout(1500);
   // FR
-  await p.click('#langs button[data-lang=fr]'); await p.waitForTimeout(200);
-  R.fr = await p.evaluate(() => [document.documentElement.lang, document.querySelector('[data-t=plugTitle]').textContent, document.getElementById('play').textContent, document.querySelectorAll('.check')[2].textContent.trim().replace(/\s+/g, ' ')]);
-  R.deDisabled = await p.evaluate(() => document.querySelector('#langs button[data-lang=de]').disabled);
-  await p.click('#langs button[data-lang=en]');
+  await p.click('#langs a[data-lang=fr]'); await p.waitForTimeout(200);
+  R.fr = await p.evaluate(() => [document.documentElement.lang, document.querySelector('[data-t=plugTitle]').textContent, document.getElementById('play').textContent, document.querySelector('.check[data-step=clock]').textContent.trim().replace(/\s+/g, ' ')]);
+  R.deLink = await p.evaluate(() => !!document.querySelector('#langs a[data-lang=de]'));
+  await p.click('#langs a[data-lang=en]');
   const before = await p.evaluate(() => JSON.stringify(window.__sim.trk));
   await p.click('#idxPlug button[data-genre="DETROIT"]'); R.playLabel = await p.evaluate(() => document.getElementById('play').textContent); await p.click('details summary'); await p.selectOption('#dur', '3'); await p.click('#play');
   await p.waitForFunction(() => /PLAY on your/.test(document.getElementById('status').textContent), null, { timeout: 20000 });
@@ -62,11 +62,11 @@ const file = process.argv[2], out = process.argv[3] || '.';
   await p.waitForFunction(() => !document.querySelector('#title .new'), null, { timeout: 120000 });
   R.t2 = await p.evaluate(() => document.getElementById('title').textContent);
   // FR à l'antenne
-  await p.click('#langs button[data-lang=fr]'); await p.waitForTimeout(300);
+  await p.click('#langs a[data-lang=fr]'); await p.waitForTimeout(300);
   R.frAir = await p.evaluate(() => [document.getElementById('status').textContent, document.getElementById('meta').textContent, document.getElementById('next').textContent, document.getElementById('phases').textContent]);
   await p.click('#fav'); await p.waitForTimeout(200);
   R.favs = await p.evaluate(() => document.getElementById('favs').textContent.replace(/\s+/g, ' '));
-  await p.click('#langs button[data-lang=en]');
+  await p.click('#langs a[data-lang=en]');
   // mobile
   await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(300);
   R.mobileScroll = await p.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
