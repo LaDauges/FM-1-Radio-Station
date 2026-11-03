@@ -2,6 +2,8 @@
 
 FM-1 Radio est sous GPL-3.0 (`../LICENSE`), parce que `app/gen/jiant-gen.mjs` contient le code de JIANT (GPL-3.0-only).
 
+Source correspondante (GPL-3.0, section 6) : `app/gen/jiant-gen.mjs` est compilé depuis le dépôt public de JIANT, https://github.com/juanjiant-bit/JIANT, commit `5db7ffc` (V10.26), avec l'enveloppe et le script de `../gen/`. Recompiler : `../gen/README.md`.
+
 Ce fichier compilé embarque tout le harnais hôte de JIANT (`tests/ui_test.c`), donc aussi des parties qui gardent leur propre licence (détail dans `reference/JIANT/LICENSING.md`) :
 
 | Partie | Licence | Texte |
