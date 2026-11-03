@@ -93,7 +93,7 @@ Rapporté par LaDague, sans journal joint :
 
 Chiffres manquants pour ce passage (latences du test 1, pire trou de minuterie onglet caché du test 3) : à récupérer dans le JSON si besoin.
 
-Conclusion de la sonde : le design « radio qui mue » est faisable sur V10.9 en mode LOOP, avec l'app comme horloge maître. Restent à mesurer (brief Claude Code) : CC contre SysEx pour les fondus, clics objectifs dans l'audio, table des Program Change.
+Conclusion de la sonde : le design « radio qui mue » est faisable sur V10.9 en mode LOOP, avec l'app comme horloge maître. Restent à mesurer : CC contre SysEx pour les fondus, clics objectifs dans l'audio, table des Program Change.
 
 ## 2026-11-01 : gen.c compilé (`app/gen/jiant-gen.mjs`, JIANT V10.26)
 
@@ -119,7 +119,7 @@ Ajout à l'export : `"mute": true` sur une piste dont le rôle ne joue pas (GEN 
 
 **Débit, estimé** depuis le générateur (pas mesuré sur la machine) : d'un morceau au suivant du même genre, environ 120 paramètres et 180 pas différents (2,6 sons changés) ; entre deux genres, environ 160 paramètres et 290 pas (4,6 sons). Aux vitesses mesurées (55 ms par paramètre, 100 ms par pas), environ 24 s d'écriture par transition dans un genre, 38 s entre genres, 47 s au pire. Chiffre approché : après un `PRESET`, l'app compare aux paramètres du nouveau son, pas à ceux du morceau précédent. Le journal de l'app donne les vrais nombres par piste.
 
-Reste à observer sur la machine (vérification 3 du brief) : GEN (HOME + SELECT), DEEP HOUSE, seed 421, ENERGY 30, **FORM LOOP** (la machine démarre en PARTS), COMPLEX 50, HUMAN 30, SWING AUTO (les défauts), MENU › TRACKS 6, après avoir sauvegardé sa musique. Attendu (`node reference/JIANT/build/host/gen_dump.js 2 421 30 0`) : 122 BPM, SWING 35, LA dorien, Bm7 Em7 Am9 Am6 ; T1 DRUM son DRUM-X, T2 ANALOG son SUB BASS, T3 FM6 son TINE EP (accords à 4 sons), T4 à T6 sans notes ; 64 pas par piste.
+Reste à observer sur la machine (vérification 3 de `gen/README.md`) : GEN (HOME + SELECT), DEEP HOUSE, seed 421, ENERGY 30, **FORM LOOP** (la machine démarre en PARTS), COMPLEX 50, HUMAN 30, SWING AUTO (les défauts), MENU › TRACKS 6, après avoir sauvegardé sa musique. Attendu (`node reference/JIANT/build/host/gen_dump.js 2 421 30 0`) : 122 BPM, SWING 35, LA dorien, Bm7 Em7 Am9 Am6 ; T1 DRUM son DRUM-X, T2 ANALOG son SUB BASS, T3 FM6 son TINE EP (accords à 4 sons), T4 à T6 sans notes ; 64 pas par piste.
 
 ### 2026-11-02, pourquoi une écriture prend 100 ms (lu dans le code, pas mesuré)
 

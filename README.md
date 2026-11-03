@@ -22,7 +22,7 @@ node tools/build-site.mjs       # builds the published site into dist/
 node server/node.mjs            # serves dist/ like production (headers, CSP) + the live counter, http://localhost:8080
 ```
 
-`app/index.html` is the app, `app/i18n.js` holds every text and the HTML templates shared with the build. The project notes are in French, in `CLAUDE.md` and `docs/`.
+`app/index.html` is the app, `app/i18n.js` holds every text and the HTML templates shared with the build. Technical notes (in French) are in `docs/`: the JIANT editor protocol as measured on the machine (`probe-log.md`), the mix engine (`mix.md`) and the tune format (`format-morceau.md`).
 
 ## Deploy
 

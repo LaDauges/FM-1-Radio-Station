@@ -1,6 +1,6 @@
 # Compiler le générateur de JIANT pour FM-1 Radio
 
-Brief pour Claude Code, sur la machine de LaDague. À lire après `../CLAUDE.md`.
+Comment produire `app/gen/jiant-gen.mjs`, le générateur de JIANT compilé en WebAssembly, et vérifier qu'il donne les mêmes morceaux que la machine.
 
 **État (2026-11-01)** : fait. `app/gen/jiant-gen.mjs` est compilé depuis JIANT V10.26 et vérifié hors machine (résultats dans `docs/probe-log.md`). Reste la vérification 3 sur la machine.
 

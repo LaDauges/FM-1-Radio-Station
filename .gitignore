@@ -4,3 +4,8 @@ app/gen/*.mjs.map
 CLAUDE.local.md
 dist/
 node_modules/
+# notes de travail, gardées en local
+CLAUDE.md
+docs/decisions.md
+docs/brief-claude-code-sonde.md
+*.bundle
