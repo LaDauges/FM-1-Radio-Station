@@ -15,6 +15,8 @@ Produire `app/gen/jiant-gen.mjs` : `gen.c` de JIANT compilé en WebAssembly, dan
 - `host_fix.h` : bouchons pour deux fonctions MUTATE retirées du firmware mais encore appelées par `tests/ui_test.c` (clang refuse ce que gcc tolère).
 - `py_noraqm.py` : lance `gen_aa_font.py` quand Pillow n'a pas libraqm (cas des wheels Windows).
 
+Si le dépôt de JIANT ou sa branche `codex/add15-private` disparaît, le même commit est dans la copie https://github.com/LaDauges/JIANT : `git clone https://github.com/LaDauges/JIANT.git reference/JIANT` avant de lancer le script (il ne reclone pas un dossier existant).
+
 Règle : ne jamais modifier le code de JIANT dans `reference/`, seulement l'enveloppe et ces fichiers.
 
 ## Recompiler
