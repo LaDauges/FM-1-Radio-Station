@@ -810,6 +810,11 @@ const mulberry = s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(
 const pickR = (rnd, a) => a[Math.floor(rnd() * a.length)];
 let gByLabel = {};                                   // label d'un global vers son id (lu par DESC à la connexion)
 let wantNext = false;
+/* « Morceau suivant » une seconde fois (le morceau suivant est déjà demandé ou en route) : on y passe tout de suite.
+   La phrase en cours s'arrête à la mesure suivante, toutes les pistes sortent d'un coup sauf le pont, le nouveau
+   morceau entre à la mesure d'après. (On ne peut pas faire plus court : ses pistes doivent encore s'écrire.) */
+let skipNow = false, skipKick = null;
+function skipBar() { return new Promise(res => { const go = () => waitPulse(nextBoundary(BAR)).then(res); if (skipNow) go(); else skipKick = go; }); }
 const userBusy = () => performance.now() - lastActive < 30000 / (FAST ? 30 : 1);
 const INTROS = [
   { name: "nappe", order: [R.PAD, R.TEX, R.ARP, R.BASS], fx: { [R.PAD]: { rev: 45, chor: 25 }, [R.ARP]: { dly: 35, rev: 20 } } },
@@ -919,7 +924,7 @@ async function playPiece(p, id, ctx) {
   const base = {}; const active = new Set(); let bridge = ctx.bridge;
   const byRole = r => it.filter(x => x.role === r);
   const total = arc.phases.reduce((a, f) => a + f.n, 0); let done = 0;
-  piece = p; wantNext = false;
+  piece = p; wantNext = false; skipNow = false; skipKick = null; let quick = !!ctx.quick;
   L("mix", `${pieceName(p)}: ${arc.name} arc (${arc.phases.map(f => f.kind + " " + f.n).join(", ")}), intro ${intro.name}${bridge ? ", bridge on track " + (bridge.k + 1) : ""}`);
   async function ready(x) {
     await ctx.prep[x.k];
@@ -948,21 +953,24 @@ async function playPiece(p, id, ctx) {
   }
   async function phrase() {
     if (ctx.first) ctx.first = false;                                // premier morceau : l'intro part dès le PLAY
+    else if (quick) { quick = false; await waitPulse(nextBoundary(BAR)); if (id !== runId) return false; }   // après un saut : à la mesure suivante
     else {
-      await waitPhrase(); if (id !== runId) return false;
-      if (userBusy()) { await calm(id); await waitPhrase(); }        // le musicien jouait : on reprend sur une limite de phrase
+      await Promise.race([waitPhrase(), skipBar()]); if (id !== runId) return false;   // (un saut demandé coupe la phrase à la mesure)
+      if (userBusy() && !skipNow) { await calm(id); await waitPhrase(); }   // le musicien jouait : on reprend sur une limite de phrase
     }
     done++; NOW.done++; NOW.at = Math.floor(playedPulse() / PHRASE) * PHRASE; renderArc();
     while (CLK.mode === "machine" && !CLK.running && id === runId) await sleep(300);
     return id === runId;
   }
   let curPh = 0;
+  const cut = () => skipNow && phases[curPh] && phases[curPh].kind !== "outro";   // un saut : on quitte la phase pour la descente
   const say = (kind, i, n) => { if (NOW.ph !== curPh) { NOW.ph = curPh; renderArc(); }
     status("st.phase", { phase: () => t("phase." + kind), i: n > 1 ? ` ${i + 1}/${n}` : "", arc: () => t("arcs." + arc.name), intro: () => t("intros." + intro.name) }); };
   const g0 = { FEEDBK: cur.globals[gByLabel.FEEDBK], SIZE: cur.globals[gByLabel.SIZE] };
   const e = p.energy;
   let phases = arc.phases.slice();
   Object.assign(NOW, { arc: arc.name, phases, done: 0, at: playedPulse(), intro: intro.name, next: null, ph: -1 });
+  setButtons();                                      // (le bouton redevient « Morceau suivant »)
   history.push({ at: new Date(), name: pieceName(p) }); renderNow();
   for (let ph = 0; ph < phases.length; ph++) {
     const f = phases[ph]; curPh = ph;
@@ -974,7 +982,7 @@ async function playPiece(p, id, ctx) {
       const order = intro.order.flatMap(r => byRole(r)).filter(x => !active.has(x.k));
       if (intro.djf) { cur.globals[G_DJF] = await setG(G_DJF, intro.djf[0], true); djfTo(intro.djf[1], f.n * 4, id); }
       for (let i = 0; i < f.n; i++) {
-        if (!(await phrase())) return null; say("intro", i, f.n);
+        if (!(await phrase())) return null; if (cut()) break; say("intro", i, f.n);
         if (i === 1 || i === f.n - 1) await releaseBridge();
         const take = i === f.n - 1 ? order.length : 1;
         for (const x of order.splice(0, take)) go(x, intro.fx && intro.fx[x.role], 2);
@@ -984,7 +992,7 @@ async function playPiece(p, id, ctx) {
       const waiting = it.filter(x => !active.has(x.k) && x.role !== R.DRUM && x.role !== R.BASS && x.role !== R.LEAD);
       for (const x of it) if (active.has(x.k) && x.role !== R.DRUM) shapeFx(x, { dly: 18, rev: 15 }, f.n * 4);
       for (let i = 0; i < f.n; i++) {
-        if (!(await phrase())) return null; say("build", i, f.n);
+        if (!(await phrase())) return null; if (cut()) break; say("build", i, f.n);
         const x = waiting.shift(); if (x) go(x, { dly: 18, rev: 15 }, 2);
         if (i === f.n - 1) {
           djfTo(28 + Math.round(e / 5), 4, id);                       // le filtre monte sur la dernière phrase
@@ -995,7 +1003,7 @@ async function playPiece(p, id, ctx) {
     } else if (f.kind === "peak") {
       const tex = rnd() < 0.5;
       for (let i = 0; i < f.n; i++) {
-        if (!(await phrase())) return null; say("peak", i, f.n);
+        if (!(await phrase())) return null; if (cut()) break; say("peak", i, f.n);
         if (i === 0) {
           djfTo(0, 0, id); gTo("FEEDBK", g0.FEEDBK, 1, id); gTo("SIZE", g0.SIZE, 1, id);
           const drive = Math.round(e / 7);
@@ -1020,7 +1028,7 @@ async function playPiece(p, id, ctx) {
       }
     } else if (f.kind === "breakdown") {
       for (let i = 0; i < f.n; i++) {
-        if (!(await phrase())) return null; say("breakdown", i, f.n);
+        if (!(await phrase())) return null; if (cut()) break; say("breakdown", i, f.n);
         if (i === 0) {
           const melodic = it.filter(x => x.role !== R.DRUM && x.role !== R.BASS);
           for (const x of it) if (active.has(x.k) && (x.role === R.DRUM || (x.role === R.BASS && melodic.length))) await exit(x);
@@ -1040,7 +1048,7 @@ async function playPiece(p, id, ctx) {
       const ranked = pref.map(r => cand.find(x => x.role === r)).filter(Boolean);
       const br = ranked.length ? ranked[rnd() < 0.65 || ranked.length < 2 ? 0 : 1] : null;
       L("mix", `to ${pieceName(np)}: intro ${nIntro.name}, bridge ${br ? ROLE[br.role] + " (track " + (br.k + 1) + ")" : "none"}`);
-      NOW.next = np; renderNow();
+      NOW.next = np; renderNow(); setButtons();
       const prep = {};
       const nPlay = new Set(nIt.map(x => x.k));
       const free = k => { const t = np.tracks[k]; if (t && nPlay.has(k) && (!br || k !== br.k)) prep[k] = pushSerial(k, t, "new "); };
@@ -1050,14 +1058,15 @@ async function playPiece(p, id, ctx) {
       if (br) shapeFx(br, { rev: 30, dly: 15 }, f.n * 4);
       for (let i = 0; i < f.n; i++) {
         if (!(await phrase())) return null; say("outro", i, f.n);
-        const n = i === f.n - 1 ? leaving.length : Math.ceil(leaving.length / (f.n - i));
+        const last = skipNow || i === f.n - 1;                         // un saut : tout sort d'un coup, sauf le pont
+        const n = last ? leaving.length : Math.ceil(leaving.length / (f.n - i));
         for (const x of leaving.splice(0, n)) { await exit(x); free(x.k); }
-        if (i === f.n - 1) clockRamp(np.bpm, 4);
+        if (last) { clockRamp(np.bpm, skipNow ? 1 : 4); break; }
       }
       gTo("FEEDBK", g0.FEEDBK, 1, id); gTo("SIZE", g0.SIZE, 1, id);
       await pushGlobals(np.globals);
       if (!br) djfTo(0, 0, id);
-      return { piece: np, ctx: { bridge: br ? { k: br.k } : null, prep, intro: nIntro } };
+      return { piece: np, ctx: { bridge: br ? { k: br.k } : null, prep, intro: nIntro, quick: skipNow } };
     }
   }
   return null;
@@ -1334,6 +1343,9 @@ function setButtons() {
   const clockOk = $("clk").value === "app" || performance.now() - CLK.lastPulse < 1200;
   $("play").disabled = !ready || connecting || starting || !station || playing || CHK.fw !== "ok" || !clockOk || CHK.armed || CHK.other;
   for (const id of ["stop", "next", "fav", "hold", "surprise"]) $(id).disabled = !playing;
+  const pend = playing && (wantNext || !!NOW.next);   // un morceau est déjà demandé : le bouton propose d'y passer tout de suite
+  $("next").textContent = pend ? t("nextNow") : t("next"); $("next").disabled = !playing || skipNow;
+  $("next").title = pend ? t("nextNowTitle") : t("nextTitle");
   $("hold").textContent = holding ? t("resume") : t("stay");
   $("hold").classList.toggle("on", holding);
   $("restoreMine").classList.toggle("hidden", !saved || playing);
@@ -1383,7 +1395,15 @@ $("keepMine").onchange = renderChecks;
 $("connect").onclick = connect;
 $("play").onclick = async () => { if (playing || starting || !ready) return; starting = true; setButtons(); try { await start(); } finally { starting = false; setButtons(); } };
 $("stop").onclick = stop;
-$("next").onclick = () => { if (playing) { nextPiece = makePiece(station); holding = false; lastActive = -1e9; wantNext = true; setButtons(); status("st.arrives", { name: pieceName(nextPiece) }); renderSched(); renderIndex(); } };
+$("next").onclick = () => {
+  if (!playing) return;
+  holding = false; lastActive = -1e9;
+  if (wantNext || NOW.next) {                        // second clic : le morceau demandé arrive tout de suite
+    if (!skipNow) { skipNow = true; const k = skipKick; skipKick = null; if (k) k(); L("mix", "skip: next tune right away"); status("st.skipping", { name: pieceName(NOW.next || nextPiece) }); }
+    setButtons(); return;
+  }
+  nextPiece = makePiece(station); wantNext = true; setButtons(); status("st.arrives", { name: pieceName(nextPiece) }); renderSched(); renderIndex();
+};
 $("restoreMine").onclick = restoreMine;
 $("hold").onclick = () => { holding = !holding; setButtons(); status(holding ? "st.holding" : "st.playing"); };
 window.addEventListener("beforeunload", e => { if (playing) { e.preventDefault(); e.returnValue = ""; } });
