@@ -26,7 +26,10 @@ node server/node.mjs            # serves dist/ like production (headers, CSP) + 
 
 ## Deploy
 
-Build with `node tools/build-site.mjs` (output `dist`). The site is static except for the live counter (`/api/live`, how many FM-1 are on air right now): `server/node.mjs` serves both, with no dependencies. The public address goes in `site.config.json`.
+Build with `node tools/build-site.mjs` (output `dist`). The site is static except for the live counter (`/api/live`, how many FM-1 are on air right now). Two ways to run it, both tested:
+
+- **Cloudflare Workers** (production): `wrangler.jsonc` serves `dist/` as static assets and the counter from a Durable Object (`server/cloudflare.mjs`). `npx wrangler dev` locally, `npx wrangler deploy` to publish; the build runs first.
+- **Any Node host**: `node server/node.mjs` serves `dist/` with its headers and redirects, plus the counter in memory (one instance). No dependencies.
 
 The counter is anonymous: a random id kept in page memory, no cookie, no storage, forgotten 2 minutes after the radio stops.
 
@@ -35,3 +38,5 @@ The counter is anonymous: a random id kept in page memory, no cookie, no storage
 The generator is **JIANT FM** by Juan Ignacio Antonucci (GPL-3.0), a fork of **Felucca** by Leo Kuroshita / Hügelton Instruments. FM-1 Radio is free software under the **GPL-3.0** (`LICENSE`); third-party parts and fonts are listed in `LICENSES/`.
 
 FM-1 Radio is an independent community project, not affiliated with M-VAVE.
+
+Contact: [contact@fm1-radio.com](mailto:contact@fm1-radio.com)

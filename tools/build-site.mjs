@@ -105,7 +105,7 @@ function ldHome(lang) {
     { "@type": "WebApplication", "@id": abs("/#app"), name: "FM-1 Radio", url: abs(UI.url(lang)), description: t("seo.appDesc"), inLanguage: lang,
       applicationCategory: "MultimediaApplication", applicationSubCategory: "Generative music", operatingSystem: "Windows, macOS, Linux, ChromeOS, Android",
       browserRequirements: "Requires Web MIDI with SysEx: Chrome or Edge", isAccessibleForFree: true, license: "https://www.gnu.org/licenses/gpl-3.0.html",
-      offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" }, image: abs(`/assets/og-${lang}.png`), sameAs: [LINKS.src],
+      offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" }, author: { "@type": "Organization", name: "FM-1 Radio", url: abs("/"), email: LINKS.contact }, image: abs(`/assets/og-${lang}.png`), sameAs: [LINKS.src],
       isBasedOn: { "@type": "SoftwareApplication", name: "JIANT FM", url: LINKS.jiant, author: { "@type": "Person", name: "Juan Ignacio Antonucci" } } },
     { "@type": "FAQPage", "@id": abs(UI.url(lang)) + "#faq", inLanguage: lang, mainEntity: t("page.faq").map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
   ] });
@@ -252,7 +252,9 @@ write("_headers", `/*
 /licenses/*
   Content-Type: text/plain; charset=utf-8
 `);
-write("_redirects", `/app /  301\n/app/ /  301\n/app/index.html /  301\n/en /  301\n/en/ /  301\n/en/* /:splat 301\n`);
+/* sans barre finale : redirection définitive (301), pas la 307 que les hébergeurs font d'eux-mêmes */
+const SLASH = ["home", "guide"].flatMap(page => LANGS.map(l => UI.url(l, page))).filter(u => u !== "/").map(u => `${u.slice(0, -1)} ${u} 301`);
+write("_redirects", `/app /  301\n/app/ /  301\n/app/index.html /  301\n/en /  301\n/en/ /  301\n/en/* /:splat 301\n${SLASH.join("\n")}\n`);
 
 const files = []; (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const f = path.join(d, e.name); e.isDirectory() ? walk(f) : files.push(f); } })(OUT);
 const size = files.reduce((a, f) => a + fs.statSync(f).size, 0);

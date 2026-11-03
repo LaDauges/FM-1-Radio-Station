@@ -1,0 +1,21 @@
+// FM-1 Radio sur Cloudflare Workers : le site statique (dist/) et le compteur des FM-1 à l'antenne.
+// npx wrangler dev       : en local, http://localhost:8787 (le build passe avant)
+// npx wrangler deploy    : mise en ligne (fait aussi par Workers Builds à chaque push sur main)
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fm1-radio",
+  "main": "server/cloudflare.mjs",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "build": { "command": "node tools/build-site.mjs" },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "durable_objects": { "bindings": [{ "name": "LIVE", "class_name": "LiveRoom" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["LiveRoom"] }],
+  "observability": { "enabled": true }
+}

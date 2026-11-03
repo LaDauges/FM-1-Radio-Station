@@ -9,3 +9,4 @@ CLAUDE.md
 docs/decisions.md
 docs/brief-claude-code-sonde.md
 *.bundle
+.wrangler/
