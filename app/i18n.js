@@ -8,6 +8,7 @@
  * ========================================================================================================= */
 const LINKS = {
   jiant: "https://github.com/juanjiant-bit/JIANT",
+  hub: "https://thefirmwarehub.com/#fw-jiant",           // la fiche JIANT FM sur The Firmware Hub (installation depuis le navigateur)
   src: "https://github.com/LaDauges/FM-1-Radio-Station",
 };
 
@@ -46,7 +47,7 @@ const I18N = {
         note: "One page at a time: two FM-1 Radio tabs would mix up the machine's replies." },
       firmware: { name: "JIANT firmware", title: "JIANT on the machine", where: "machine",
         why: "The radio speaks the editor protocol of <a href='{jiant}'>JIANT FM</a>, the custom firmware by Juan Ignacio Antonucci. On the stock firmware or another firmware, it can't do anything.",
-        steps: [["JIANT FM", "V10.9 or later, tested on V10.26"], ["install", "follow the instructions on the JIANT page"]],
+        steps: [["JIANT FM", "V10.9 or later, tested on V10.26"], ["quick install", "with The Firmware Hub", "hub"]],
         note: "The radio reads the version when you connect and refuses a version it doesn't know." },
       save: { name: "Your music saved", title: "Save your music", where: "machine",
         why: "The radio writes its tunes into the tracks, in RAM. JIANT saves by itself 10 s after the machine stops, so the radio's music could end up as your autosave. Save first. The radio also keeps a copy and offers to put it back when you stop.",
@@ -185,7 +186,7 @@ const I18N = {
         note: "Une page à la fois : deux onglets FM-1 Radio mélangeraient les réponses de la machine." },
       firmware: { name: "Firmware JIANT", title: "JIANT sur la machine", where: "machine",
         why: "La radio parle le protocole d'éditeur de <a href='{jiant}'>JIANT FM</a>, le firmware custom de Juan Ignacio Antonucci. Avec le firmware d'origine ou un autre firmware, elle ne peut rien faire.",
-        steps: [["JIANT FM", "V10.9 ou plus récent, testé en V10.26"], ["installation", "suis les instructions de la page JIANT"]],
+        steps: [["JIANT FM", "V10.9 ou plus récent, testé en V10.26"], ["installation rapide", "avec The Firmware Hub", "hub"]],
         note: "La radio lit la version à la connexion et refuse une version qu'elle ne connaît pas." },
       save: { name: "Ta musique sauvegardée", title: "Sauvegarde ta musique", where: "machine",
         why: "La radio écrit ses morceaux dans les pistes, en RAM. JIANT sauvegarde tout seul 10 s après l'arrêt de la machine : la musique de la radio pourrait devenir ta sauvegarde automatique. Sauvegarde d'abord. La radio garde aussi une copie et te propose de la remettre à l'arrêt.",
@@ -324,7 +325,7 @@ const I18N = {
         note: "Immer nur eine Seite: Zwei FM-1-Radio-Tabs würden die Antworten der Maschine durcheinanderbringen." },
       firmware: { name: "JIANT-Firmware", title: "JIANT auf der Maschine", where: "machine",
         why: "Das Radio spricht das Editor-Protokoll von <a href='{jiant}'>JIANT FM</a>, der Custom-Firmware von Juan Ignacio Antonucci. Mit der Original-Firmware oder einer anderen Firmware kann es nichts tun.",
-        steps: [["JIANT FM", "V10.9 oder neuer, getestet mit V10.26"], ["Installation", "folge der Anleitung auf der JIANT-Seite"]],
+        steps: [["JIANT FM", "V10.9 oder neuer, getestet mit V10.26"], ["Schnellinstallation", "mit The Firmware Hub", "hub"]],
         note: "Das Radio liest beim Verbinden die Version und lehnt Versionen ab, die es nicht kennt." },
       save: { name: "Deine Musik gesichert", title: "Sichere deine Musik", where: "machine",
         why: "Das Radio schreibt seine Stücke in die Spuren, im RAM. JIANT speichert 10 s nach dem Stoppen der Maschine von selbst, also könnte die Musik des Radios zu deinem Autosave werden. Speichere vorher. Das Radio behält außerdem eine Kopie und bietet dir beim Stoppen an, sie zurückzuspielen.",
@@ -463,7 +464,7 @@ const I18N = {
         note: "Eén pagina tegelijk: twee FM-1 Radio-tabbladen zouden de antwoorden van het apparaat door elkaar halen." },
       firmware: { name: "JIANT-firmware", title: "JIANT op het apparaat", where: "machine",
         why: "De radio spreekt het editorprotocol van <a href='{jiant}'>JIANT FM</a>, de custom firmware van Juan Ignacio Antonucci. Met de originele firmware of een andere firmware kan hij niets.",
-        steps: [["JIANT FM", "V10.9 of nieuwer, getest met V10.26"], ["installatie", "volg de instructies op de JIANT-pagina"]],
+        steps: [["JIANT FM", "V10.9 of nieuwer, getest met V10.26"], ["snelle installatie", "met The Firmware Hub", "hub"]],
         note: "De radio leest de versie bij het verbinden en weigert een versie die hij niet kent." },
       save: { name: "Je muziek bewaard", title: "Bewaar je muziek", where: "machine",
         why: "De radio schrijft zijn nummers in de tracks, in het RAM. JIANT slaat 10 s nadat het apparaat stopt vanzelf op, dus de muziek van de radio kan je autosave worden. Sla eerst op. De radio houdt ook een kopie bij en biedt aan die terug te zetten als je stopt.",
@@ -601,7 +602,9 @@ const UI = (() => {
   const ICON = { ok: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
     bad: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="2"/></svg>' };
   ICON.done = ICON.ok;
-  const stepsHTML = steps => (steps || []).map(([k, w], i) => `<li><span class="n">${i + 1}</span><span class="k">${esc(k)}</span><span>${esc(w)}</span></li>`).join("");
+  /* une étape : [touche, texte] ou [touche, texte, lien] ; le lien est une clé de LINKS et rend le texte cliquable */
+  const stepsHTML = steps => (steps || []).map(([k, w, a], i) => `<li><span class="n">${i + 1}</span><span class="k">${esc(k)}</span>`
+    + `<span>${a && LINKS[a] ? `<a href="${esc(LINKS[a])}">${esc(w)}</a>` : esc(w)}</span></li>`).join("");
   /* rows : [{ key, s (ok, bad, wait, todo, done), txt }] */
   function checksHTML(t, rows, sel) {
     return rows.map((r, i) => `<li><button type="button" class="check ${r.s}${r.key === sel ? " sel" : ""}" data-step="${r.key}"${r.key === sel ? ' aria-current="step"' : ""}>`
