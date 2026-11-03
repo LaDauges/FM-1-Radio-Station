@@ -2,7 +2,7 @@
 /* =========================================================================================================
  * FM-1 Radio : les textes (une entrée par langue), les familles de styles et les gabarits HTML partagés
  * entre l'app (app/index.html) et le build du site (tools/build-site.mjs, qui pré-rend chaque page).
- * Les chaînes sous setup, page, guide et creditsH peuvent contenir du HTML : elles viennent d'ici, jamais de l'utilisateur.
+ * Les chaînes sous setup, page, guide, creditsH, footH, kofiAir et kofiStop peuvent contenir du HTML : elles viennent d'ici, jamais de l'utilisateur.
  * Les mots de la machine (HOME, SAVE, MIDI OUT, CLOCK...) restent en anglais : ils sont écrits sur le FM-1.
  * Jamais de tiret cadratin.
  * ========================================================================================================= */
@@ -10,6 +10,7 @@ const LINKS = {
   jiant: "https://github.com/juanjiant-bit/JIANT",
   hub: "https://thefirmwarehub.com/#fw-jiant",           // la fiche JIANT FM sur The Firmware Hub (installation depuis le navigateur)
   src: "https://github.com/LaDauges/FM-1-Radio-Station",
+  kofi: "https://ko-fi.com/Q8U529ZL7N",                  // un simple lien, pas le widget Ko-fi (script tiers, Google Fonts, document.write)
 };
 
 /* les styles, rangés par famille (le classement est le nôtre, pas celui de JIANT) ; energy : l'énergie de départ */
@@ -72,6 +73,8 @@ const I18N = {
     toNight: "Switch to the signal theme", toDay: "Switch to the day theme", langLabel: "Language",
     fam: { house: "House & disco", techno: "Techno", synth: "Synth & wave", guitar: "Guitars", groove: "Groove", bass: "Bass & breaks", calm: "Calm", other: "More" },
     next: "Next tune →", keep: "Keep", stay: "Stay here", resume: "Back to the radio", stop: "Stop",
+    kofiAir: "<a href='{kofi}' target='_blank' rel='noopener'>Support on Ko-fi</a>",
+    kofiStop: "Enjoyed the radio? <a href='{kofi}' target='_blank' rel='noopener'>Support it on Ko-fi</a>.",
     playing: "You're playing", playingText: "The radio keeps this tune and touches nothing. It picks up again 30 s after your last move.",
     holdingTitle: "Staying here", holdingText: "The radio keeps this tune until you hand it back.",
     meta: "{fam} · {bpm} BPM · energy {e}",
@@ -89,7 +92,7 @@ const I18N = {
     genFallback: "Fallback generator: gen.c is not compiled yet (gen/build-gen.ps1). Tunes are simpler and don't match the machine's seeds.",
     creditsH: "Generator: <a href='{jiant}'>JIANT FM</a> by Juan Ignacio Antonucci (GPL-3.0), a fork of Felucca by Hügelton Instruments. FM-1 Radio is free software under GPL-3.0: <a href='{src}'>source code</a>. An independent community project, not affiliated with M-VAVE.",
     liveLabel: "FM-1 ON AIR", liveTitle: "FM-1 playing the radio right now", liveTitleMe: "FM-1 playing the radio right now, yours included",
-    footH: "FM-1 Radio · GPL-3.0 · <a href='{guide}'>Setup guide</a> · <a href='{src}'>Source code</a> · <a href='{licenses}'>Licenses</a>",
+    footH: "FM-1 Radio · GPL-3.0 · <a href='{guide}'>Setup guide</a> · <a href='{src}'>Source code</a> · <a href='{licenses}'>Licenses</a> · <a href='{kofi}' target='_blank' rel='noopener'>Support on Ko-fi</a>",
     noscript: "FM-1 Radio needs JavaScript and Web MIDI: open it in Chrome or Edge.",
     st: { reading: "Reading the music on the machine...", ready: "Ready.", usb: "Switching to the USB clock, tracks muted.",
       pressPlay: "Press PLAY on your machine (STOP then PLAY if it's already playing). The first tune is loading meanwhile.", loading: "Loading the first tune...", stoppedM: "Stopped on the machine: press PLAY to resume.",
@@ -136,6 +139,7 @@ const I18N = {
       ],
       creditsT: "Credits",
       credits: "The generator is <a href='{jiant}'>JIANT FM</a> by Juan Ignacio Antonucci (GPL-3.0), a fork of Felucca by Leo Kuroshita / Hügelton Instruments. FM-1 Radio is free software under GPL-3.0: <a href='{src}'>source code</a>, <a href='{licenses}'>licenses</a>. It is an independent community project, not affiliated with M-VAVE.",
+      support: "The radio is free, with no ads and no account. If it keeps you company while you work, you can <a href='{kofi}' target='_blank' rel='noopener'>support it on Ko-fi</a>.",
     },
     guide: {
       h1: "Set up your FM-1",
@@ -211,6 +215,8 @@ const I18N = {
     toNight: "Passer au thème signal", toDay: "Passer au thème jour", langLabel: "Langue",
     fam: { house: "House et disco", techno: "Techno", synth: "Synth et wave", guitar: "Guitares", groove: "Groove", bass: "Basses et breaks", calm: "Calme", other: "Autres" },
     next: "Morceau suivant →", keep: "Garder", stay: "Rester ici", resume: "Reprendre la radio", stop: "Arrêter",
+    kofiAir: "<a href='{kofi}' target='_blank' rel='noopener'>Soutenir sur Ko-fi</a>",
+    kofiStop: "La radio t'a plu ? <a href='{kofi}' target='_blank' rel='noopener'>Soutiens-la sur Ko-fi</a>.",
     playing: "Tu joues", playingText: "La radio garde ce morceau et ne touche plus à rien. Elle reprend 30 s après ton dernier geste.",
     holdingTitle: "On reste ici", holdingText: "La radio garde ce morceau jusqu'à ce que tu la relâches.",
     meta: "{fam} · {bpm} BPM · énergie {e}",
@@ -228,7 +234,7 @@ const I18N = {
     genFallback: "Générateur de secours : gen.c n'est pas encore compilé (gen/build-gen.ps1). Les morceaux sont plus simples et ne correspondent pas aux seeds de la machine.",
     creditsH: "Générateur : <a href='{jiant}'>JIANT FM</a> de Juan Ignacio Antonucci (GPL-3.0), fork de Felucca par Hügelton Instruments. FM-1 Radio est un logiciel libre sous GPL-3.0 : <a href='{src}'>code source</a>. Un projet communautaire indépendant, sans lien avec M-VAVE.",
     liveLabel: "FM-1 À L'ANTENNE", liveTitle: "FM-1 qui jouent la radio en ce moment", liveTitleMe: "FM-1 qui jouent la radio en ce moment, le tien compris",
-    footH: "FM-1 Radio · GPL-3.0 · <a href='{guide}'>Guide de réglage</a> · <a href='{src}'>Code source</a> · <a href='{licenses}'>Licences</a>",
+    footH: "FM-1 Radio · GPL-3.0 · <a href='{guide}'>Guide de réglage</a> · <a href='{src}'>Code source</a> · <a href='{licenses}'>Licences</a> · <a href='{kofi}' target='_blank' rel='noopener'>Soutenir sur Ko-fi</a>",
     noscript: "FM-1 Radio a besoin de JavaScript et de Web MIDI : ouvre-la dans Chrome ou Edge.",
     st: { reading: "Lecture de la musique de la machine...", ready: "Prêt.", usb: "Passage en horloge USB, pistes coupées.",
       pressPlay: "Appuie sur PLAY sur ta machine (STOP puis PLAY si elle joue déjà). Le premier morceau se charge pendant ce temps.", loading: "Chargement du premier morceau...", stoppedM: "Arrêtée sur la machine : appuie sur PLAY pour reprendre.",
@@ -275,6 +281,7 @@ const I18N = {
       ],
       creditsT: "Crédits",
       credits: "Le générateur est <a href='{jiant}'>JIANT FM</a> de Juan Ignacio Antonucci (GPL-3.0), fork de Felucca par Leo Kuroshita / Hügelton Instruments. FM-1 Radio est un logiciel libre sous GPL-3.0 : <a href='{src}'>code source</a>, <a href='{licenses}'>licences</a>. C'est un projet communautaire indépendant, sans lien avec M-VAVE.",
+      support: "La radio est gratuite, sans pub ni compte. Si elle t'accompagne pendant que tu travailles, tu peux <a href='{kofi}' target='_blank' rel='noopener'>la soutenir sur Ko-fi</a>.",
     },
     guide: {
       h1: "Régler ton FM-1",
@@ -350,6 +357,8 @@ const I18N = {
     toNight: "Zum Signal-Theme wechseln", toDay: "Zum Tag-Theme wechseln", langLabel: "Sprache",
     fam: { house: "House & Disco", techno: "Techno", synth: "Synth & Wave", guitar: "Gitarren", groove: "Groove", bass: "Bass & Breaks", calm: "Ruhig", other: "Mehr" },
     next: "Nächstes Stück →", keep: "Merken", stay: "Hierbleiben", resume: "Zurück zum Radio", stop: "Stopp",
+    kofiAir: "<a href='{kofi}' target='_blank' rel='noopener'>Auf Ko-fi unterstützen</a>",
+    kofiStop: "Hat dir das Radio gefallen? <a href='{kofi}' target='_blank' rel='noopener'>Unterstütze es auf Ko-fi</a>.",
     playing: "Du spielst", playingText: "Das Radio behält dieses Stück und rührt nichts an. Es macht 30 s nach deiner letzten Bewegung weiter.",
     holdingTitle: "Wir bleiben hier", holdingText: "Das Radio behält dieses Stück, bis du es zurückgibst.",
     meta: "{fam} · {bpm} BPM · Energie {e}",
@@ -367,7 +376,7 @@ const I18N = {
     genFallback: "Ersatz-Generator: gen.c ist noch nicht kompiliert (gen/build-gen.ps1). Die Stücke sind einfacher und passen nicht zu den Seeds der Maschine.",
     creditsH: "Generator: <a href='{jiant}'>JIANT FM</a> von Juan Ignacio Antonucci (GPL-3.0), ein Fork von Felucca von Hügelton Instruments. FM-1 Radio ist freie Software unter GPL-3.0: <a href='{src}'>Quellcode</a>. Ein unabhängiges Community-Projekt, nicht mit M-VAVE verbunden.",
     liveLabel: "FM-1 ON AIR", liveTitle: "FM-1, die gerade das Radio spielen", liveTitleMe: "FM-1, die gerade das Radio spielen, deiner mitgezählt",
-    footH: "FM-1 Radio · GPL-3.0 · <a href='{guide}'>Anleitung</a> · <a href='{src}'>Quellcode</a> · <a href='{licenses}'>Lizenzen</a>",
+    footH: "FM-1 Radio · GPL-3.0 · <a href='{guide}'>Anleitung</a> · <a href='{src}'>Quellcode</a> · <a href='{licenses}'>Lizenzen</a> · <a href='{kofi}' target='_blank' rel='noopener'>Auf Ko-fi unterstützen</a>",
     noscript: "FM-1 Radio braucht JavaScript und Web MIDI: Öffne es in Chrome oder Edge.",
     st: { reading: "Lese die Musik der Maschine...", ready: "Bereit.", usb: "Wechsel auf die USB-Clock, Spuren stumm.",
       pressPlay: "Drück PLAY an deiner Maschine (STOP, dann PLAY, wenn sie schon spielt). Das erste Stück lädt in der Zwischenzeit.", loading: "Lade das erste Stück...", stoppedM: "An der Maschine gestoppt: drück PLAY, um weiterzumachen.",
@@ -414,6 +423,7 @@ const I18N = {
       ],
       creditsT: "Credits",
       credits: "Der Generator ist <a href='{jiant}'>JIANT FM</a> von Juan Ignacio Antonucci (GPL-3.0), ein Fork von Felucca von Leo Kuroshita / Hügelton Instruments. FM-1 Radio ist freie Software unter GPL-3.0: <a href='{src}'>Quellcode</a>, <a href='{licenses}'>Lizenzen</a>. Es ist ein unabhängiges Community-Projekt, nicht mit M-VAVE verbunden.",
+      support: "Das Radio ist kostenlos, ohne Werbung und ohne Konto. Wenn es dich bei der Arbeit begleitet, kannst du es <a href='{kofi}' target='_blank' rel='noopener'>auf Ko-fi unterstützen</a>.",
     },
     guide: {
       h1: "Richte deinen FM-1 ein",
@@ -489,6 +499,8 @@ const I18N = {
     toNight: "Naar het signaal-thema", toDay: "Naar het dag-thema", langLabel: "Taal",
     fam: { house: "House & disco", techno: "Techno", synth: "Synth & wave", guitar: "Gitaren", groove: "Groove", bass: "Bass & breaks", calm: "Rustig", other: "Meer" },
     next: "Volgend nummer →", keep: "Bewaren", stay: "Hier blijven", resume: "Terug naar de radio", stop: "Stop",
+    kofiAir: "<a href='{kofi}' target='_blank' rel='noopener'>Steunen op Ko-fi</a>",
+    kofiStop: "Vond je de radio fijn? <a href='{kofi}' target='_blank' rel='noopener'>Steun hem op Ko-fi</a>.",
     playing: "Je speelt", playingText: "De radio houdt dit nummer en raakt niets aan. Hij gaat verder 30 s na je laatste beweging.",
     holdingTitle: "We blijven hier", holdingText: "De radio houdt dit nummer tot je hem teruggeeft.",
     meta: "{fam} · {bpm} BPM · energie {e}",
@@ -506,7 +518,7 @@ const I18N = {
     genFallback: "Reservegenerator: gen.c is nog niet gecompileerd (gen/build-gen.ps1). De nummers zijn eenvoudiger en komen niet overeen met de seeds van het apparaat.",
     creditsH: "Generator: <a href='{jiant}'>JIANT FM</a> van Juan Ignacio Antonucci (GPL-3.0), een fork van Felucca van Hügelton Instruments. FM-1 Radio is vrije software onder GPL-3.0: <a href='{src}'>broncode</a>. Een onafhankelijk communityproject, niet verbonden aan M-VAVE.",
     liveLabel: "FM-1 ON AIR", liveTitle: "FM-1's die nu de radio spelen", liveTitleMe: "FM-1's die nu de radio spelen, die van jou meegeteld",
-    footH: "FM-1 Radio · GPL-3.0 · <a href='{guide}'>Handleiding</a> · <a href='{src}'>Broncode</a> · <a href='{licenses}'>Licenties</a>",
+    footH: "FM-1 Radio · GPL-3.0 · <a href='{guide}'>Handleiding</a> · <a href='{src}'>Broncode</a> · <a href='{licenses}'>Licenties</a> · <a href='{kofi}' target='_blank' rel='noopener'>Steunen op Ko-fi</a>",
     noscript: "FM-1 Radio heeft JavaScript en Web MIDI nodig: open het in Chrome of Edge.",
     st: { reading: "De muziek van het apparaat wordt gelezen...", ready: "Klaar.", usb: "Overschakelen naar de USB-clock, tracks gedempt.",
       pressPlay: "Druk op PLAY op je apparaat (STOP en dan PLAY als het al speelt). Het eerste nummer laadt ondertussen.", loading: "Het eerste nummer laadt...", stoppedM: "Gestopt op het apparaat: druk op PLAY om verder te gaan.",
@@ -553,6 +565,7 @@ const I18N = {
       ],
       creditsT: "Credits",
       credits: "De generator is <a href='{jiant}'>JIANT FM</a> van Juan Ignacio Antonucci (GPL-3.0), een fork van Felucca van Leo Kuroshita / Hügelton Instruments. FM-1 Radio is vrije software onder GPL-3.0: <a href='{src}'>broncode</a>, <a href='{licenses}'>licenties</a>. Het is een onafhankelijk communityproject, niet verbonden aan M-VAVE.",
+      support: "De radio is gratis, zonder advertenties en zonder account. Houdt hij je gezelschap tijdens het werk, dan kun je hem <a href='{kofi}' target='_blank' rel='noopener'>steunen op Ko-fi</a>.",
     },
     guide: {
       h1: "Stel je FM-1 in",
@@ -635,7 +648,7 @@ const UI = (() => {
       + `<section aria-labelledby="howT"><h2 class="big" id="howT">${esc(P("howT"))}</h2><ul class="body">${P("how").map(([b, s]) => `<li><b>${esc(b)}</b> ${esc(s)}</li>`).join("")}</ul></section>`
       + `<section aria-labelledby="needT"><h2 class="big" id="needT">${esc(P("needT"))}</h2><ul class="body">${P("need").map(s => `<li>${F(s)}</li>`).join("")}</ul></section>`
       + `<section aria-labelledby="faqT"><h2 class="big" id="faqT">${esc(P("faqT"))}</h2><div class="body faq">${P("faq").map(([q, a]) => `<details class="qa"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</div></section>`
-      + `<section aria-labelledby="creditsT"><h2 class="big" id="creditsT">${esc(P("creditsT"))}</h2><div class="body"><p>${F(P("credits"))}</p></div></section>`;
+      + `<section aria-labelledby="creditsT"><h2 class="big" id="creditsT">${esc(P("creditsT"))}</h2><div class="body"><p>${t("page.credits", L)}</p><p>${t("page.support", L)}</p></div></section>`;   // (t vide les {…} sans valeurs : les liens lui sont passés)
   }
   /* la page guide : les sept étapes en entier */
   function guideArticleHTML(t, L) {

@@ -98,6 +98,10 @@
   .btn-prim.huge { font-size: clamp(24px, 4vw, 40px); padding: 12px 22px; min-height: 60px; }
   .btn { background: transparent; border: 1.5px solid var(--ink); padding: 10px 14px; min-height: 48px; font-size: 14px; }
   .btn.on { background: var(--ink); color: var(--bg); }
+  /* Ko-fi : un lien discret au bout des actions à l'antenne, et une ligne après l'arrêt */
+  .acts .kofi { margin-left: auto; font-size: 13px; }
+  .acts .kofi a { display: inline-flex; align-items: center; min-height: 48px; padding: 0 4px; }
+  #kofiStop { font-size: 13px; }
 
   /* branchement */
   .plug { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
@@ -234,6 +238,7 @@
       <button class="btn hidden" id="restoreMine" data-t="restoreMine"></button>
     </div>
     <div id="plugStatus" style="font-size: 13px"></div>
+    <div id="kofiStop" class="hidden"></div>
   </section>
 
   <!-- ============================================================== à l'antenne -->
@@ -260,6 +265,7 @@
       <button class="btn" id="fav" data-t="keep"></button>
       <button class="btn" id="hold" data-t="stay"></button>
       <button class="btn" id="stop" data-t="stop"></button>
+      <span class="kofi" id="kofiAir"></span>
     </div>
     <div class="cols">
       <div class="col">
@@ -748,11 +754,14 @@ async function preflight() {
   CHK.armed = tl.list.some(x => x.armed); renderChecks();
   if (CHK.armed) throw err("armed");
 }
+/* la ligne Ko-fi après l'arrêt : seulement si la radio a tourné un moment (pas après un démarrage raté) */
+const KOFI_AFTER = FAST ? 5e3 : 120e3;
+let playingSince = 0;
 async function start() {
   const id = ++runId;
   try {
     await preflight();
-    playing = true; holding = false; setView(); setButtons();
+    playing = true; playingSince = Date.now(); holding = false; setView(); setButtons();
     if ($("keepMine").checked) saved = JSON.parse(JSON.stringify(cur));
     origClock = await getG(G_CLOCK); origBpm = await getG(G_BPM);
     selTrack = (await trackList()).sel;
@@ -1067,7 +1076,7 @@ async function stop() {
       if (piece) { if (CLK.mode === "app") await setG(G_BPM, Math.max(40, Math.min(240, piece.bpm)), true); for (const x of items(piece)) if (written[x.k] === x.t) await setMute(x.k, 0); }   // (une piste non écrite garde l'ancien morceau : elle reste coupée)
     }
   } catch (e) { L("ERROR", msg(e)); }
-  if (was) status(CLK.mode === "machine" ? "st.handback" : null);
+  if (was) { status(CLK.mode === "machine" ? "st.handback" : null); if (Date.now() - playingSince >= KOFI_AFTER) $("kofiStop").classList.remove("hidden"); }
   setView(); setButtons(); renderHeader();
 }
 async function restoreMine() {
@@ -1142,7 +1151,8 @@ function renderStatic() {
   for (const el of document.querySelectorAll("[data-t-aria]")) el.setAttribute("aria-label", t(el.dataset.tAria));
   $("connect").textContent = dev ? t("reconnect") : t("connect");
   $("about").innerHTML = UI.aboutHTML(t, LINKS_NOW());
-  $("credits").innerHTML = UI.fill(t("footH"), LINKS_NOW());
+  $("credits").innerHTML = t("footH", LINKS_NOW());     // (les liens passent à t : t sans valeurs vide les {…})
+  $("kofiAir").innerHTML = t("kofiAir", LINKS_NOW()); $("kofiStop").innerHTML = t("kofiStop", LINKS_NOW());
   lastChecks = lastGuide = null;
   applyTheme();
 }

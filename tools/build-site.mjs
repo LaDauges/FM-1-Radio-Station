@@ -156,7 +156,7 @@ for (const lang of LANGS) {
   h = put(h, /(<div class="idx" id="idxPlug">)(<\/div>)/, UI.indexHTML(t, FAMILIES, g => g === defaultStyle));
   h = put(h, /(<button class="btn-prim huge" id="play">)(<\/button>)/, esc(`${t("start")} · ${defaultStyle}`));
   h = put(h, /(<div class="about" id="about">)(<\/div>)/, UI.aboutHTML(t, L));
-  h = put(h, /(<footer class="foot" id="credits">)(<\/footer>)/, UI.fill(t("footH"), L));
+  h = put(h, /(<footer class="foot" id="credits">)(<\/footer>)/, t("footH", L));       // (les liens passent à t : t sans valeurs vide les {…})
   h = h.replace('<script src="i18n.js" id="i18nScript" defer></script>', `<script src="${i18nURL}" id="i18nScript" defer></script>`);
   if (/data-t="[\w.]+"><\//.test(h.replace(/<option[^>]*>/g, ""))) console.warn("! un texte data-t est resté vide en " + lang);
   write(UI.url(lang).slice(1) + "index.html", h);
@@ -191,7 +191,7 @@ ${styleBlock}
     </div>
   </header>
 ${body}
-  <footer class="foot">${UI.fill(t("footH"), links(lang))}</footer>
+  <footer class="foot">${t("footH", links(lang))}</footer>
 </main>
 <script>${GUIDE_JS}</script>
 </body>
